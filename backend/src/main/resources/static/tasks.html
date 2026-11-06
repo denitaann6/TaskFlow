@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tasks Workspace — TaskFlow</title>
+  <meta name="description" content="Centralized task management workspace with full CRUD, role enforcement, and search.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <style>
+    .sortable-th {
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.15s ease, color 0.15s ease;
+    }
+    .sortable-th:hover {
+      background-color: #f1f5f9 !important;
+      color: var(--navy-900) !important;
+    }
+    .sortable-th.active-sort {
+      color: var(--primary) !important;
+    }
+    .sort-indicator {
+      display: inline-block;
+      font-size: 0.72rem;
+      color: var(--slate-400);
+      line-height: 1;
+      margin-left: 4px;
+    }
+    .sortable-th.active-sort .sort-indicator {
+      color: var(--primary);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <div id="sidebar-container"></div>
+
+    <div class="app-main">
+      <div id="header-container"></div>
+
+      <main class="page-body">
+
+        <!-- Action Bar: Search, Filters & Action Buttons -->
+        <div class="card" style="margin-bottom: 20px; padding: 18px 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+            
+            <!-- Search & Filters -->
+            <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 280px; flex-wrap: wrap;">
+              <div class="search-bar-wrapper">
+                <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input type="text" id="task-search-input" class="form-input search-input" placeholder="Search tasks by ID, name, or member...">
+              </div>
+
+              <select id="filter-status" class="form-select" style="width: auto;">
+                <option value="ALL">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+              </select>
+
+              <select id="filter-priority" class="form-select" style="width: auto;">
+                <option value="ALL">All Priorities</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+
+            <!-- Actions -->
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <button id="btn-refresh-tasks" class="btn btn-secondary btn-sm" title="Reload from MySQL">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Refresh
+              </button>
+              <button id="btn-open-create-modal" class="btn btn-primary btn-sm" style="display: none;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                New Task
+              </button>
+            </div>
+          </div>
+        <!-- Custom Singly Linked List Representation Banner -->
+        <div class="card" style="margin-bottom: 20px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-left: 4px solid var(--primary);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="welcome-pill" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); font-weight: 700; margin-bottom: 0;">Data Structure: Custom Singly Linked List</span>
+                <span id="linked-list-node-count" style="font-size: 0.85rem; color: var(--slate-700); font-weight: 700;">12 Nodes Traversed</span>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--slate-600); margin-top: 6px; margin-bottom: 0;">
+                Task records are structured as a genuine Singly Linked List with explicit Node reference pointers (<code>head ➔ next ➔ null</code>) in Java memory. Creations append to the tail; deletions unlink nodes.
+              </p>
+            </div>
+            <button id="btn-toggle-ll-visual" class="btn btn-secondary btn-sm" style="font-size: 0.8rem; background: #ffffff;">
+              View Node Pointer Chain Diagram
+            </button>
+          </div>
+          <div id="ll-visual-container" style="display: none; margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--slate-300);">
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--slate-500); text-transform: uppercase; margin-bottom: 6px;">
+              Live Node Reference Chain:
+            </div>
+            <div id="ll-chain-visual" style="font-family: monospace; font-size: 0.82rem; background: #0f172a; color: #38bdf8; padding: 12px 16px; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; line-height: 1.6;">Loading pointer chain...</div>
+          </div>
+        </div>
+
+        <!-- Tasks Table Card -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title" id="tasks-table-title">Tasks</h3>
+              <p class="card-subtitle" id="tasks-table-subtitle">Connected to MySQL database</p>
+            </div>
+            <div style="font-size: 0.82rem; color: var(--slate-500);">
+              Showing <strong id="task-count-badge" style="color: var(--navy-900);">0</strong> tasks
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="sortable-th active-sort" data-sort="id" style="width: 100px;" title="Click to sort by Task ID">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                      <span>Task ID</span>
+                      <span class="sort-indicator" id="sort-icon-id">▲</span>
+                    </div>
+                  </th>
+                  <th class="sortable-th" data-sort="name" title="Click to sort by Task Name">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                      <span>Task Name</span>
+                      <span class="sort-indicator" id="sort-icon-name">↕</span>
+                    </div>
+                  </th>
+                  <th class="sortable-th" data-sort="member" style="width: 170px;" title="Click to sort by Assigned Member">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                      <span>Assigned Member</span>
+                      <span class="sort-indicator" id="sort-icon-member">↕</span>
+                    </div>
+                  </th>
+                  <th class="sortable-th" data-sort="priority" style="width: 120px;" title="Click to sort by Priority">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                      <span>Priority</span>
+                      <span class="sort-indicator" id="sort-icon-priority">↕</span>
+                    </div>
+                  </th>
+                  <th style="width: 140px;">Status</th>
+                  <th style="width: 150px; text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tasks-tbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Create Task Modal (Admin Only) -->
+  <div id="modal-create-task" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Create New Task</h3>
+        <button class="modal-close" id="btn-close-create-modal">&times;</button>
+      </div>
+      <form id="form-create-task">
+        <div class="modal-body">
+          <div class="input-group">
+            <label class="input-label" for="new-task-id">Task ID (Unique Integer)</label>
+            <input type="number" id="new-task-id" class="form-input" placeholder="e.g. 116" required min="1">
+          </div>
+          <div class="input-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label class="input-label" for="new-task-name" style="margin-bottom: 0;">Task Name / Description</label>
+              <button type="button" id="btn-validate-name-brackets" class="btn btn-secondary btn-sm" style="padding: 2px 8px; font-size: 0.75rem;">Validate Description (Stack)</button>
+            </div>
+            <input type="text" id="new-task-name" class="form-input" placeholder="e.g. Prepare report (Phase 1 [Linked List])" required maxlength="150">
+            <div id="bracket-validation-feedback" style="display: none; font-size: 0.8rem; margin-top: 6px; padding: 6px 10px; border-radius: 4px;"></div>
+          </div>
+          <div class="input-group">
+            <label class="input-label" for="new-task-member">Assign To Team Member</label>
+            <select id="new-task-member" class="form-select" required>
+              <!-- Populated dynamically from team -->
+            </select>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="input-group">
+              <label class="input-label" for="new-task-priority">Priority</label>
+              <select id="new-task-priority" class="form-select">
+                <option value="High">High</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label class="input-label" for="new-task-status">Initial Status</label>
+              <select id="new-task-status" class="form-select">
+                <option value="Pending" selected>Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-create">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-task">Create Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Task Modal (Admin Only) -->
+  <div id="modal-edit-task" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Task Details</h3>
+        <button class="modal-close" id="btn-close-edit-modal">&times;</button>
+      </div>
+      <form id="form-edit-task">
+        <input type="hidden" id="edit-task-id">
+        <div class="modal-body">
+          <div class="input-group">
+            <label class="input-label">Task ID</label>
+            <input type="text" id="edit-task-id-display" class="form-input" disabled style="background:#f1f5f9;">
+          </div>
+          <div class="input-group">
+            <label class="input-label" for="edit-task-name">Task Name</label>
+            <input type="text" id="edit-task-name" class="form-input" required maxlength="150">
+          </div>
+          <div class="input-group">
+            <label class="input-label" for="edit-task-member">Assigned Member</label>
+            <select id="edit-task-member" class="form-select" required>
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="input-group">
+              <label class="input-label" for="edit-task-priority">Priority</label>
+              <select id="edit-task-priority" class="form-select">
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label class="input-label" for="edit-task-status">Status</label>
+              <select id="edit-task-status" class="form-select">
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-edit">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-edit-task">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/api.js?v=4.0"></script>
+  <script src="js/navbar.js?v=4.0"></script>
+  <script>
+    let allTasks = [];
+    let teamMembers = [];
+    let currentUser = null;
+    let isAdmin = false;
+
+    // Sorting state (default: Task ID ascending)
+    let currentSortField = 'id';
+    let currentSortOrder = 'asc'; // 'asc' or 'desc'
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Initial auth check
+      let user = API.requireAuth();
+      if (!user) return;
+
+      // 2. Validate session against backend /api/auth/me to eliminate stale role in localStorage
+      try {
+        const freshUser = await API.syncCurrentUser();
+        if (freshUser) {
+          user = freshUser;
+        }
+      } catch (e) {
+        console.warn('Could not sync user with backend:', e);
+      }
+
+      currentUser = user;
+      isAdmin = currentUser.role && currentUser.role.toUpperCase() === 'ADMIN';
+
+      renderAppLayout('tasks', isAdmin ? 'Organization Task Directory' : 'My Assigned Tasks Workspace', currentUser);
+
+      if (isAdmin) {
+        document.title = 'Tasks Workspace (Admin) — TaskFlow';
+        document.getElementById('btn-open-create-modal').style.display = 'inline-flex';
+        document.getElementById('tasks-table-title').textContent = 'All Organization Tasks';
+        document.getElementById('tasks-table-subtitle').textContent = 'Complete view and management of team deliverables.';
+        await loadTeamRoster();
+      } else {
+        document.title = 'My Tasks Workspace — TaskFlow';
+        document.getElementById('btn-open-create-modal').style.display = 'none';
+        document.getElementById('tasks-table-title').textContent = 'My Assigned Tasks';
+        document.getElementById('tasks-table-subtitle').textContent = 'Tasks assigned to your user account. Update status using the dropdown controls.';
+        document.getElementById('task-search-input').placeholder = 'Search my tasks by ID or name...';
+      }
+
+      await loadTasks();
+
+      // Search & Filter event handlers
+      document.getElementById('task-search-input').addEventListener('input', applyFilters);
+      document.getElementById('filter-status').addEventListener('change', applyFilters);
+      document.getElementById('filter-priority').addEventListener('change', applyFilters);
+      document.getElementById('btn-refresh-tasks').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-refresh-tasks');
+        btn.disabled = true;
+        try {
+          await loadTasks();
+          API.showToast('Tasks reloaded from MySQL database', 'success');
+        } catch (err) {
+          API.showToast('Failed to refresh tasks: ' + err.message, 'error');
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      // Sortable Column Header Event Handlers
+      document.querySelectorAll('.sortable-th').forEach(th => {
+        th.addEventListener('click', () => {
+          const field = th.getAttribute('data-sort');
+          if (currentSortField === field) {
+            currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+          } else {
+            currentSortField = field;
+            currentSortOrder = 'asc';
+          }
+          applyFilters();
+        });
+      });
+
+      // Modal Triggers
+      setupModals();
+    });
+
+    async function loadTeamRoster() {
+      try {
+        const team = await API.getTeamMembers();
+        teamMembers = team || [];
+        const memberSelect = document.getElementById('new-task-member');
+        const editMemberSelect = document.getElementById('edit-task-member');
+
+        const options = teamMembers.map(m =>
+          `<option value="${escapeHtml(m.assignedMemberName || m.displayName || m.username)}">${escapeHtml(m.displayName || m.username)} (${escapeHtml(m.username)})</option>`
+        ).join('');
+
+        memberSelect.innerHTML = options;
+        editMemberSelect.innerHTML = options;
+      } catch (e) {
+        console.warn('Could not load team roster for select dropdown:', e);
+      }
+    }
+
+    async function loadTasks() {
+      try {
+        allTasks = await API.getTasks();
+        applyFilters();
+        await updateLinkedListVisual();
+      } catch (err) {
+        API.showToast('Failed to load tasks: ' + err.message, 'error');
+      }
+    }
+
+    async function updateLinkedListVisual() {
+      try {
+        const res = await API.traverseLinkedList();
+        const countEl = document.getElementById('linked-list-node-count');
+        const visualEl = document.getElementById('ll-chain-visual');
+        if (countEl) {
+          countEl.textContent = isAdmin
+            ? `${res.totalNodes} Nodes Traversed`
+            : `${res.totalNodes} Nodes (Your Tasks)`;
+        }
+        if (visualEl) visualEl.textContent = res.visual || '[HEAD] -> NULL';
+      } catch (err) {
+        console.warn('Could not update linked list visual:', err);
+      }
+    }
+
+    /**
+     * Genuine Insertion Sort Algorithm
+     * Incremental O(N^2) sorting that performs in-place element comparisons and shifts
+     * on a shallow copy of the task array. Does NOT use native JS array sorting methods.
+     *
+     * @param {Array} list - Array of task objects
+     * @param {string} field - 'id' | 'name' | 'member' | 'priority'
+     * @param {string} order - 'asc' | 'desc'
+     * @returns {Array} New sorted array of tasks
+     */
+    function insertionSortTasks(list, field, order) {
+      if (!list || list.length <= 1) return list ? [...list] : [];
+
+      const arr = [...list];
+      const isAsc = order === 'asc';
+
+      for (let i = 1; i < arr.length; i++) {
+        const key = arr[i];
+        let j = i - 1;
+
+        while (j >= 0 && compareTasks(arr[j], key, field, isAsc) > 0) {
+          arr[j + 1] = arr[j]; // Shift element right
+          j--;
+        }
+        arr[j + 1] = key; // Insert key in sorted position
+      }
+
+      return arr;
+    }
+
+    /**
+     * Comparator for task fields
+     * Returns positive if a > b (for asc) or a < b (for desc)
+     */
+    function compareTasks(a, b, field, isAsc) {
+      let cmp = 0;
+      if (field === 'id') {
+        const idA = Number(a.id) || 0;
+        const idB = Number(b.id) || 0;
+        cmp = idA - idB;
+      } else if (field === 'name') {
+        const nameA = (a.name || '').trim().toLowerCase();
+        const nameB = (b.name || '').trim().toLowerCase();
+        cmp = nameA.localeCompare(nameB);
+      } else if (field === 'member') {
+        const memberA = (a.member || '').trim().toLowerCase();
+        const memberB = (b.member || '').trim().toLowerCase();
+        cmp = memberA.localeCompare(memberB);
+      } else if (field === 'priority') {
+        // Priority Rank: High = 1, Medium = 2, Low = 3
+        const rank = (p) => {
+          const pl = (p || '').toLowerCase();
+          if (pl.startsWith('h')) return 1;
+          if (pl.startsWith('m')) return 2;
+          return 3;
+        };
+        cmp = rank(a.priority) - rank(b.priority);
+      }
+
+      return isAsc ? cmp : -cmp;
+    }
+
+    /**
+     * Updates visual sorting indicators (▲ / ▼ / ↕) on table headers
+     */
+    function updateSortIndicators() {
+      const fields = ['id', 'name', 'member', 'priority'];
+      fields.forEach(f => {
+        const th = document.querySelector(`.sortable-th[data-sort="${f}"]`);
+        const icon = document.getElementById(`sort-icon-${f}`);
+        if (!th || !icon) return;
+
+        if (currentSortField === f) {
+          th.classList.add('active-sort');
+          icon.textContent = currentSortOrder === 'asc' ? '▲' : '▼';
+        } else {
+          th.classList.remove('active-sort');
+          icon.textContent = '↕';
+        }
+      });
+    }
+
+    function applyFilters() {
+      const query = (document.getElementById('task-search-input').value || '').trim().toLowerCase();
+      const statusFilter = document.getElementById('filter-status').value;
+      const priorityFilter = document.getElementById('filter-priority').value;
+
+      // 1. Multi-field filtering across authorized tasks
+      let filtered = allTasks.filter(t => {
+        // Query match across ID, name, and assigned member
+        const matchesQuery = !query ||
+          (t.id && String(t.id).includes(query)) ||
+          (t.name && t.name.toLowerCase().includes(query)) ||
+          (t.member && t.member.toLowerCase().includes(query));
+
+        // Status match
+        const matchesStatus = statusFilter === 'ALL' || (t.status || '').toLowerCase() === statusFilter.toLowerCase();
+
+        // Priority match
+        const matchesPriority = priorityFilter === 'ALL' || (t.priority || '').toLowerCase() === priorityFilter.toLowerCase();
+
+        return matchesQuery && matchesStatus && matchesPriority;
+      });
+
+      // 2. Genuine Insertion Sort applied on the filtered subset without mutating original records
+      const sorted = insertionSortTasks(filtered, currentSortField, currentSortOrder);
+
+      // 3. Render table and update indicators
+      renderTable(sorted);
+      updateSortIndicators();
+    }
+
+    function renderTable(tasks) {
+      const tbody = document.getElementById('tasks-tbody');
+      document.getElementById('task-count-badge').textContent = tasks.length;
+
+      if (!tasks || tasks.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align: center; padding: 48px 24px;">
+              <img src="assets/empty-state.svg" alt="No Tasks" style="width: 140px; margin-bottom: 8px;">
+              <p style="color: var(--slate-500); font-size: 0.9rem;">No tasks match the selected criteria.</p>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = tasks.map(t => {
+        const isCompleted = (t.status || '').toLowerCase() === 'completed';
+        const isInProgress = (t.status || '').toLowerCase().includes('prog');
+
+        return `
+          <tr>
+            <td><strong style="color: var(--navy-900); font-family: var(--font-mono);">#${t.id}</strong></td>
+            <td>
+              <div style="font-weight: 600; color: var(--navy-900);">${escapeHtml(t.name)}</div>
+            </td>
+            <td>
+              <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--navy-800);">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--lavender);"></span>
+                ${escapeHtml(t.member)}
+              </span>
+            </td>
+            <td><span class="priority-pill ${getPriorityClass(t.priority)}">${escapeHtml(t.priority)}</span></td>
+            <td>
+              <select class="form-select btn-sm select-status-change" data-id="${t.id}" style="padding: 4px 8px; font-size: 0.78rem; font-weight: 600; width: auto;">
+                <option value="Pending" ${(t.status || '').toLowerCase() === 'pending' ? 'selected' : ''}>Pending</option>
+                <option value="In Progress" ${(t.status || '').toLowerCase().includes('prog') ? 'selected' : ''}>In Progress</option>
+                <option value="Completed" ${(t.status || '').toLowerCase() === 'completed' ? 'selected' : ''}>Completed</option>
+              </select>
+            </td>
+            <td style="text-align: right;">
+              <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                ${isAdmin ? `
+                  <button class="btn btn-secondary btn-sm btn-edit-task" data-id="${t.id}" title="Edit Task Details">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                    </svg>
+                  </button>
+                  <button class="btn btn-danger btn-sm btn-delete-task" data-id="${t.id}" data-name="${escapeHtml(t.name)}" title="Delete Task">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
+                ` : `
+                  ${!isCompleted ? `
+                    <button class="btn btn-success btn-sm btn-complete-own" data-id="${t.id}">Done</button>
+                  ` : `
+                    <span style="font-size: 0.78rem; color: #059669; font-weight: 600;">✓ Done</span>
+                  `}
+                `}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // Status change dropdown handler
+      document.querySelectorAll('.select-status-change').forEach(sel => {
+        sel.addEventListener('change', async (e) => {
+          const taskId = e.target.getAttribute('data-id');
+          const newStatus = e.target.value;
+          try {
+            await API.updateTaskStatus(taskId, newStatus);
+            API.showToast(`Task #${taskId} updated to ${newStatus}`, 'success');
+            await loadTasks();
+          } catch (err) {
+            API.showToast(err.message, 'error');
+            await loadTasks();
+          }
+        });
+      });
+
+      // Member complete button handler
+      document.querySelectorAll('.btn-complete-own').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const taskId = e.currentTarget.getAttribute('data-id');
+          try {
+            await API.completeTask(taskId);
+            API.showToast(`Task #${taskId} marked completed!`, 'success');
+            await loadTasks();
+          } catch (err) {
+            API.showToast(err.message, 'error');
+          }
+        });
+      });
+
+      // Admin edit & delete handlers
+      if (isAdmin) {
+        document.querySelectorAll('.btn-edit-task').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const taskId = e.currentTarget.getAttribute('data-id');
+            const task = allTasks.find(t => String(t.id) === String(taskId));
+            if (task) openEditModal(task);
+          });
+        });
+
+        document.querySelectorAll('.btn-delete-task').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const taskId = e.currentTarget.getAttribute('data-id');
+            const taskName = e.currentTarget.getAttribute('data-name');
+            if (confirm(`Are you sure you want to delete Task #${taskId} ("${taskName}") from MySQL?`)) {
+              try {
+                await API.deleteTask(taskId);
+                API.showToast(`Task #${taskId} deleted successfully`, 'success');
+                await loadTasks();
+              } catch (err) {
+                API.showToast(err.message, 'error');
+              }
+            }
+          });
+        });
+      }
+    }
+
+    function setupModals() {
+      const createModal = document.getElementById('modal-create-task');
+      const editModal = document.getElementById('modal-edit-task');
+
+      if (!isAdmin) {
+        if (createModal) createModal.remove();
+        if (editModal) editModal.remove();
+        return;
+      }
+
+      const openCreateBtn = document.getElementById('btn-open-create-modal');
+      if (openCreateBtn) {
+        openCreateBtn.addEventListener('click', () => {
+          // Suggest next available ID
+          const maxId = allTasks.reduce((max, t) => (t.id > max ? t.id : max), 115);
+          document.getElementById('new-task-id').value = maxId + 1;
+          createModal.classList.add('active');
+        });
+      }
+
+      document.getElementById('btn-close-create-modal').addEventListener('click', () => createModal.classList.remove('active'));
+      document.getElementById('btn-cancel-create').addEventListener('click', () => createModal.classList.remove('active'));
+
+      document.getElementById('btn-close-edit-modal').addEventListener('click', () => editModal.classList.remove('active'));
+      document.getElementById('btn-cancel-edit').addEventListener('click', () => editModal.classList.remove('active'));
+
+      const toggleVisualBtn = document.getElementById('btn-toggle-ll-visual');
+      const visualContainer = document.getElementById('ll-visual-container');
+      if (toggleVisualBtn && visualContainer) {
+        toggleVisualBtn.addEventListener('click', () => {
+          const isHidden = visualContainer.style.display === 'none';
+          visualContainer.style.display = isHidden ? 'block' : 'none';
+          toggleVisualBtn.textContent = isHidden ? 'Hide Pointer Chain Diagram' : 'View Node Pointer Chain Diagram';
+        });
+      }
+
+      const taskNameInput = document.getElementById('new-task-name');
+      const validateBracketsBtn = document.getElementById('btn-validate-name-brackets');
+      const bracketFeedback = document.getElementById('bracket-validation-feedback');
+
+      async function validateTaskNameBrackets(showAlert = false) {
+        if (!taskNameInput || !bracketFeedback) return true;
+        const text = (taskNameInput.value || '').trim();
+        if (!text) {
+          bracketFeedback.style.display = 'none';
+          return true;
+        }
+        try {
+          const res = await API.checkBrackets(text);
+          bracketFeedback.style.display = 'block';
+          if (res.balanced) {
+            const hasBrackets = /[(){}[\]]/.test(text);
+            bracketFeedback.style.background = '#ecfdf5';
+            bracketFeedback.style.color = '#065f46';
+            bracketFeedback.style.border = '1px solid #a7f3d0';
+            bracketFeedback.innerHTML = hasBrackets
+              ? `<strong>✓ Balanced:</strong> Parentheses, brackets, and braces correctly paired using Linked-List Stack.`
+              : `<strong>✓ Valid:</strong> Plain description without brackets.`;
+            return true;
+          } else {
+            bracketFeedback.style.background = '#fef2f2';
+            bracketFeedback.style.color = '#991b1b';
+            bracketFeedback.style.border = '1px solid #fecaca';
+            const detail = res.errorDetail || res.message || 'Mismatched or unclosed brackets detected.';
+            bracketFeedback.innerHTML = `<strong>✗ Bracket Syntax Error:</strong> ${escapeHtml(detail)}`;
+            if (showAlert) {
+              API.showToast('Please fix bracket syntax: ' + detail, 'error');
+            }
+            return false;
+          }
+        } catch (e) {
+          console.warn('Bracket validation failed:', e);
+          return true;
+        }
+      }
+
+      if (validateBracketsBtn) {
+        validateBracketsBtn.addEventListener('click', () => validateTaskNameBrackets(true));
+      }
+      if (taskNameInput) {
+        taskNameInput.addEventListener('blur', () => validateTaskNameBrackets(false));
+      }
+
+      // Create Task Submit
+      document.getElementById('form-create-task').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('new-task-id').value;
+        const name = document.getElementById('new-task-name').value.trim();
+        const member = document.getElementById('new-task-member').value;
+        const priority = document.getElementById('new-task-priority').value;
+        const status = document.getElementById('new-task-status').value;
+
+        // Verify bracket syntax using custom linked-list stack
+        const isValid = await validateTaskNameBrackets(true);
+        if (!isValid) return;
+
+        try {
+          await API.createTask(id, name, member, priority, status);
+          API.showToast(`Task #${id} created successfully and added to Linked List!`, 'success');
+          createModal.classList.remove('active');
+          document.getElementById('form-create-task').reset();
+          if (bracketFeedback) bracketFeedback.style.display = 'none';
+          await loadTasks();
+        } catch (err) {
+          API.showToast(err.message, 'error');
+        }
+      });
+
+      // Edit Task Submit
+      document.getElementById('form-edit-task').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('edit-task-id').value;
+        const name = document.getElementById('edit-task-name').value.trim();
+        const member = document.getElementById('edit-task-member').value;
+        const priority = document.getElementById('edit-task-priority').value;
+        const status = document.getElementById('edit-task-status').value;
+
+        try {
+          await API.editTask(id, name, member, priority, status);
+          API.showToast(`Task #${id} updated successfully!`, 'success');
+          editModal.classList.remove('active');
+          await loadTasks();
+        } catch (err) {
+          API.showToast(err.message, 'error');
+        }
+      });
+    }
+
+    function openEditModal(task) {
+      document.getElementById('edit-task-id').value = task.id;
+      document.getElementById('edit-task-id-display').value = '#' + task.id;
+      document.getElementById('edit-task-name').value = task.name || '';
+      document.getElementById('edit-task-priority').value = task.priority || 'Medium';
+      document.getElementById('edit-task-status').value = task.status || 'Pending';
+
+      // Select member
+      const memberSelect = document.getElementById('edit-task-member');
+      if (task.member) {
+        let matched = false;
+        for (let opt of memberSelect.options) {
+          if (opt.value.toLowerCase() === task.member.toLowerCase()) {
+            opt.selected = true;
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) {
+          const newOpt = new Option(task.member, task.member, true, true);
+          memberSelect.add(newOpt);
+        }
+      }
+
+      document.getElementById('modal-edit-task').classList.add('active');
+    }
+
+    function getPriorityClass(p) {
+      if (!p) return 'medium';
+      const pl = p.toLowerCase();
+      if (pl.startsWith('h')) return 'high';
+      if (pl.startsWith('l')) return 'low';
+      return 'medium';
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+  </script>
+</body>
+</html>

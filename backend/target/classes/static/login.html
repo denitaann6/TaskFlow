@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome back — TaskFlow</title>
+  <meta name="description" content="Sign in to continue to your workspace.">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #FAFAFC;
+      color: #172033;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .brand-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: block;
+    }
+
+    .brand-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #172033;
+      letter-spacing: -0.02em;
+    }
+
+    .login-card {
+      background: #FFFFFF;
+      border: 1px solid #E6E9EF;
+      border-radius: 10px;
+      padding: 36px 32px;
+      box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05), 0 1px 2px rgba(16, 24, 40, 0.03);
+    }
+
+    .login-header {
+      margin-bottom: 24px;
+    }
+
+    .login-title {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #172033;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .login-subtitle {
+      font-size: 0.88rem;
+      color: #667085;
+      line-height: 1.45;
+    }
+
+    .alert-error {
+      background-color: #FEF3F2;
+      border: 1px solid #FECDCA;
+      color: #B42318;
+      font-size: 0.82rem;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      line-height: 1.4;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #172033;
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      height: 42px;
+      padding: 0 14px;
+      background: #FFFFFF;
+      border: 1px solid #E6E9EF;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: #172033;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .form-input:focus {
+      border-color: #315EFB;
+      box-shadow: 0 0 0 3px rgba(49, 94, 251, 0.12);
+    }
+
+    .form-input::placeholder {
+      color: #98A2B3;
+    }
+
+    .password-wrapper {
+      position: relative;
+    }
+
+    .password-wrapper .form-input {
+      padding-right: 40px;
+    }
+
+    .btn-password-toggle {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: #667085;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+    }
+
+    .btn-password-toggle:hover {
+      color: #172033;
+    }
+
+    .btn-submit {
+      width: 100%;
+      height: 42px;
+      background-color: #315EFB;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.15s ease, box-shadow 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .btn-submit:hover {
+      background-color: #234CD6;
+    }
+
+    .btn-submit:active {
+      background-color: #1E3EB4;
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    /* Subtle Quick Demo Selector */
+    .demo-helper-section {
+      margin-top: 22px;
+      padding-top: 16px;
+      border-top: 1px solid #E6E9EF;
+    }
+
+    .demo-helper-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #667085;
+      margin-bottom: 8px;
+    }
+
+    .demo-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .demo-pill-btn {
+      background: #F4F5F8;
+      border: 1px solid #E6E9EF;
+      color: #344054;
+      font-size: 0.72rem;
+      font-weight: 500;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+
+    .demo-pill-btn:hover {
+      background: #EBEFFC;
+      border-color: #BFCEFD;
+      color: #315EFB;
+    }
+
+    .page-footer {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 0.75rem;
+      color: #98A2B3;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-container">
+    <!-- Branding -->
+    <div class="brand-header">
+      <img src="assets/logo.svg" alt="TaskFlow" class="brand-logo">
+      <span class="brand-title">TaskFlow</span>
+    </div>
+
+    <!-- Login Card -->
+    <div class="login-card">
+      <div class="login-header">
+        <h1 class="login-title">Welcome back</h1>
+        <p class="login-subtitle">Sign in to continue to your workspace.</p>
+      </div>
+
+      <div id="login-alert" class="alert-error"></div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label for="username" class="form-label">Username</label>
+          <input 
+            type="text" 
+            id="username" 
+            class="form-input" 
+            placeholder="Enter your username" 
+            required 
+            autocomplete="username"
+            autofocus
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="password" class="form-label">Password</label>
+          <div class="password-wrapper">
+            <input 
+              type="password" 
+              id="password" 
+              class="form-input" 
+              placeholder="Enter your password" 
+              required 
+              autocomplete="current-password"
+            >
+            <button type="button" id="btn-toggle-password" class="btn-password-toggle" title="Toggle password visibility">
+              <svg id="eye-icon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" id="btn-submit" class="btn-submit">
+          <span id="btn-text">Sign in</span>
+        </button>
+      </form>
+
+      <!-- Predefined Demo Accounts Quick Access -->
+      <div class="demo-helper-section">
+        <div class="demo-helper-header">
+          <span>Demo Accounts</span>
+          <span>Click to fill</span>
+        </div>
+        <div class="demo-pills">
+          <button type="button" class="demo-pill-btn" data-user="admin" data-pass="Admin@123">Admin</button>
+          <button type="button" class="demo-pill-btn" data-user="john" data-pass="Member@123">John</button>
+          <button type="button" class="demo-pill-btn" data-user="subu" data-pass="Member@123">Subu</button>
+          <button type="button" class="demo-pill-btn" data-user="sheena" data-pass="Member@123">Sheena</button>
+          <button type="button" class="demo-pill-btn" data-user="sebastian" data-pass="Member@123">Sebastian</button>
+          <button type="button" class="demo-pill-btn" data-user="mary" data-pass="Member@123">Mary</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-footer">
+      TaskFlow Project Management System • Port 8085
+    </div>
+  </div>
+
+  <script src="js/api.js?v=4.0"></script>
+  <script>
+    // Check for expired session query parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('expired')) {
+      const alertBox = document.getElementById('login-alert');
+      alertBox.textContent = 'Your session has expired. Please sign in again.';
+      alertBox.style.display = 'flex';
+    }
+
+    // Password visibility toggle
+    const toggleBtn = document.getElementById('btn-toggle-password');
+    const passwordInput = document.getElementById('password');
+    toggleBtn.addEventListener('click', () => {
+      const isPassword = passwordInput.getAttribute('type') === 'password';
+      passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+    });
+
+    // Demo pills click handler
+    document.querySelectorAll('.demo-pill-btn').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.getElementById('username').value = pill.getAttribute('data-user');
+        document.getElementById('password').value = pill.getAttribute('data-pass');
+        document.getElementById('login-alert').style.display = 'none';
+      });
+    });
+
+    // Form submission
+    const loginForm = document.getElementById('login-form');
+    const submitBtn = document.getElementById('btn-submit');
+    const btnText = document.getElementById('btn-text');
+    const alertBox = document.getElementById('login-alert');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      alertBox.style.display = 'none';
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      if (!username || !password) {
+        alertBox.textContent = 'Please enter both username and password.';
+        alertBox.style.display = 'flex';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      btnText.textContent = 'Signing in...';
+
+      try {
+        const res = await API.login(username, password);
+        if (res && res.token) {
+          window.location.href = 'dashboard.html';
+        }
+      } catch (err) {
+        alertBox.textContent = err.message || 'Invalid username or password.';
+        alertBox.style.display = 'flex';
+      } finally {
+        submitBtn.disabled = false;
+        btnText.textContent = 'Sign in';
+      }
+    });
+  </script>
+</body>
+</html>

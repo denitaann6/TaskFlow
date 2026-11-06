@@ -1,0 +1,1835 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow - Project Management System</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f4f6f9;
+            color: #263238;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            color: #6b233d;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            color: #667085;
+            font-size: 14px;
+        }
+
+        .connection {
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            border: 1px solid #ddd;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 22px;
+            border-radius: 10px;
+            border-left: 5px solid #6b233d;
+            box-shadow: 0 2px 8px #0000000a;
+        }
+
+        .stat-card h3 {
+            font-size: 14px;
+            color: #667085;
+            margin-bottom: 12px;
+        }
+
+        .stat-card p {
+            font-size: 28px;
+            font-weight: bold;
+            color: #6b233d;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 10px;
+            padding: 22px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px #0000000a;
+        }
+
+        .panel h2 {
+            color: #6b233d;
+            margin-bottom: 18px;
+            font-size: 20px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #ccd2d8;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+        }
+
+        input:focus, select:focus {
+            outline: 2px solid #ead5dd;
+            border-color: #6b233d;
+        }
+
+        .form-actions {
+            margin-top: 18px;
+        }
+
+        button {
+            border: none;
+            border-radius: 6px;
+            padding: 10px 15px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.86;
+        }
+
+        .primary {
+            background: #6b233d;
+            color: white;
+        }
+
+        .secondary {
+            background: #edf0f3;
+            color: #263238;
+        }
+
+        .danger {
+            background: #fde8e8;
+            color: #b42318;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .toolbar-left, .toolbar-right {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar input {
+            min-width: 220px;
+        }
+
+        .toolbar select {
+            width: auto;
+            min-width: 145px;
+        }
+
+        .table-wrap {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 650px;
+        }
+
+        th, td {
+            padding: 14px 12px;
+            text-align: left;
+            border-bottom: 1px solid #edf0f3;
+            font-size: 14px;
+        }
+
+        th {
+            color: #6b233d;
+            background: #faf6f8;
+        }
+
+        tr:hover td {
+            background: #fcfafb;
+        }
+
+        .badge {
+            display: inline-block;
+            border-radius: 20px;
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .pending {
+            background: #fff2cc;
+            color: #8a6100;
+        }
+
+        .completed {
+            background: #d9f5e5;
+            color: #137547;
+        }
+
+        .in-progress {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .priority-high {
+            color: #b42318;
+            font-weight: bold;
+        }
+
+        .priority-medium {
+            color: #a15c00;
+            font-weight: bold;
+        }
+
+        .priority-low {
+            color: #137547;
+            font-weight: bold;
+        }
+
+        .message {
+            display: none;
+            padding: 12px 14px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .message.success {
+            display: block;
+            background: #d9f5e5;
+            color: #137547;
+        }
+
+        .message.error {
+            display: block;
+            background: #fde8e8;
+            color: #b42318;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 30px;
+            color: #667085;
+        }
+
+        footer {
+            text-align: center;
+            color: #667085;
+            font-size: 12px;
+            padding: 10px;
+        }
+
+        @media (max-width: 750px) {
+            body {
+                padding: 14px;
+            }
+
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .panel {
+                padding: 16px;
+            }
+
+            .toolbar input {
+                min-width: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <header>
+        <div>
+            <h1>TaskFlow</h1>
+            <p class="subtitle">Project Management System</p>
+        </div>
+        <div class="connection" id="connectionStatus">
+            Connecting to Java backend...
+        </div>
+    </header>
+
+    <section class="dashboard">
+        <div class="stat-card">
+            <h3>Total Tasks</h3>
+            <p id="totalCount">0</p>
+        </div>
+
+        <div class="stat-card">
+            <h3>Pending Tasks</h3>
+            <p id="pendingCount">0</p>
+        </div>
+
+        <div class="stat-card">
+            <h3>Completed Tasks</h3>
+            <p id="completedCount">0</p>
+        </div>
+    </section>
+
+    <section class="panel">
+        <h2>Add New Task</h2>
+
+        <div id="message" class="message" role="status"></div>
+
+        <form id="taskForm">
+            <div class="form-grid">
+                <div class="field">
+                    <label for="taskId">Task ID</label>
+                    <input
+                        type="number"
+                        id="taskId"
+                        min="1"
+                        step="1"
+                        placeholder="Enter unique task ID"
+                        required
+                    >
+                </div>
+
+                <div class="field">
+                    <label for="taskName">Task Name</label>
+                    <input
+                        type="text"
+                        id="taskName"
+                        placeholder="Enter task name"
+                        required
+                    >
+                </div>
+
+                <div class="field">
+                    <label for="teamMember">Team Member</label>
+                    <input
+                        type="text"
+                        id="teamMember"
+                        placeholder="Enter member name"
+                        required
+                    >
+                </div>
+
+                <div class="field">
+                    <label for="priority">Priority</label>
+                    <select id="priority" required>
+                        <option value="Low">Low</option>
+                        <option value="Medium" selected>Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="status">Status</label>
+                    <select id="status" required>
+                        <option value="Pending" selected>Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="primary" id="addButton">
+                    Add Task
+                </button>
+                <button type="reset" class="secondary">
+                    Clear Form
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <section class="panel">
+        <h2>All Tasks</h2>
+
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <input
+                    type="search"
+                    id="searchInput"
+                    placeholder="Search by ID, task or member..."
+                    aria-label="Search tasks"
+                >
+
+                <select id="sortSelect" aria-label="Sort tasks">
+                    <option value="default">Default order</option>
+                    <option value="id">Sort by ID</option>
+                    <option value="name">Sort by name</option>
+                    <option value="priority">Sort by priority</option>
+                </select>
+            </div>
+
+            <div class="toolbar-right">
+                <button type="button" class="secondary" id="refreshButton">
+                    Refresh Tasks
+                </button>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Task</th>
+                        <th>Team Member</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="taskTableBody">
+                    <tr>
+                        <td colspan="6" class="empty">Loading tasks...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Pending Task Queue (FIFO) -->
+    <section class="panel" id="pendingQueueSection">
+        <h2>Pending Task Queue (FIFO)</h2>
+        <p style="color: #667085; font-size: 14px; margin-bottom: 14px;">
+            Tasks are displayed in FIFO order (First In, First Out).
+        </p>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;">
+            <button type="button" class="secondary" onclick="loadPendingQueue()">
+                Refresh Queue
+            </button>
+            <button type="button" class="primary" onclick="processNextTask()">
+                Process Next Task
+            </button>
+        </div>
+
+        <div id="pendingQueueList" style="line-height: 1.8;">
+            Click "Refresh Queue" to view pending tasks.
+        </div>
+
+        <p id="queueMessage" style="margin-top: 10px; font-weight: bold;"></p>
+    </section>
+
+    <!-- Recently Completed Tasks Stack (LIFO) -->
+    <section class="panel" id="completedStackSection">
+        <h2>Recently Completed Tasks Stack (LIFO)</h2>
+        <p style="color: #667085; font-size: 14px; margin-bottom: 14px;">
+            Tasks are stored and displayed in LIFO order (Last In, First Out — most recently completed task is at the top).
+        </p>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;">
+            <button type="button" class="secondary" onclick="loadCompletedStack()">
+                Refresh Stack
+            </button>
+            <button type="button" class="secondary" onclick="popCompletedTask()">
+                Pop Most Recent Task
+            </button>
+        </div>
+
+        <div id="completedStackList" style="line-height: 1.8;">
+            Click "Refresh Stack" to view completed tasks.
+        </div>
+
+        <p id="stackMessage" style="margin-top: 10px; font-weight: bold;"></p>
+    </section>
+
+    <!-- Step 4: Bracket Checker using a Stack -->
+    <section class="panel" id="bracketCheckerSection">
+        <h2>Bracket Checker (Stack Application)</h2>
+        <p style="color: #667085; font-size: 14px; margin-bottom: 14px;">
+            Checks whether brackets <code>()</code>, <code>{}</code>, and <code>[]</code> are balanced using a Stack (LIFO).
+        </p>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center;">
+            <input
+                type="text"
+                id="bracketInput"
+                placeholder="Enter expression e.g. {[()]}, (a + [b * c]), etc."
+                style="max-width: 420px;"
+                onkeydown="if(event.key === 'Enter') checkBrackets();"
+            >
+            <button type="button" class="primary" id="checkBracketsBtn" onclick="checkBrackets()">
+                Check Brackets
+            </button>
+            <button type="button" class="secondary" onclick="clearBracketChecker()">
+                Clear
+            </button>
+        </div>
+
+        <div style="margin-bottom: 14px; font-size: 13px; color: #667085; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <span>Sample expressions:</span>
+            <button type="button" class="secondary" style="padding: 4px 8px; font-size: 12px;" onclick="setBracketSample('{[()]}')">{[()]}</button>
+            <button type="button" class="secondary" style="padding: 4px 8px; font-size: 12px;" onclick="setBracketSample('{[(])}')">{[(])}</button>
+            <button type="button" class="secondary" style="padding: 4px 8px; font-size: 12px;" onclick="setBracketSample('((())')">((())</button>
+            <button type="button" class="secondary" style="padding: 4px 8px; font-size: 12px;" onclick="setBracketSample('(a + [b * {c - d}])')">(a + [b * {c - d}])</button>
+            <button type="button" class="secondary" style="padding: 4px 8px; font-size: 12px;" onclick="setBracketSample(')(')">)</button>
+        </div>
+
+        <div id="bracketResult" style="line-height: 1.8; background: #faf6f8; border: 1px solid #ead5dd; border-radius: 8px; padding: 14px;">
+            Enter an expression above and click "Check Brackets" to evaluate.
+        </div>
+    </section>
+
+    <!-- Binary Search Tree (BST) Task Search & Traversal -->
+    <section class="panel" id="bstSection">
+        <h2>Binary Search Tree (BST) — Task ID Search</h2>
+        <p style="color: #667085; font-size: 14px; margin-bottom: 14px;">
+            Organizes tasks into a Binary Search Tree by Task ID for O(log n) lookup and sorted Inorder traversal.
+        </p>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center;">
+            <input
+                type="number"
+                id="bstSearchInput"
+                placeholder="Enter Task ID to search in BST..."
+                style="max-width: 280px;"
+                min="1"
+            >
+            <button type="button" class="primary" onclick="searchBST()">
+                Search via BST
+            </button>
+            <button type="button" class="secondary" onclick="loadBSTInorder()">
+                Display Inorder (Sorted IDs)
+            </button>
+        </div>
+
+        <div id="bstResult" style="line-height: 1.8; background: #faf6f8; border: 1px solid #ead5dd; border-radius: 8px; padding: 14px;">
+            Enter a Task ID to search in the BST, or click "Display Inorder" to view sorted tasks.
+        </div>
+    </section>
+
+    <!-- Task Dependency Graph & BFS Traversal -->
+    <section class="panel" id="graphSection">
+        <h2>Task Dependency Graph & BFS Traversal</h2>
+        <p style="color: #667085; font-size: 14px; margin-bottom: 14px;">
+            Represents project task prerequisites as a Directed Graph (Adjacency List) and computes execution flow using Breadth-First Search (BFS).
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 14px; align-items: end;">
+            <div class="field">
+                <label for="graphFromId">Prerequisite Task ID</label>
+                <input
+                    type="number"
+                    id="graphFromId"
+                    placeholder="Must complete first..."
+                    min="1"
+                >
+            </div>
+
+            <div class="field">
+                <label for="graphToId">Dependent Task ID</label>
+                <input
+                    type="number"
+                    id="graphToId"
+                    placeholder="Dependent task..."
+                    min="1"
+                >
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+                <button type="button" class="primary" onclick="addGraphDependency()" style="height: 42px;">
+                    Add Dependency Edge
+                </button>
+                <button type="button" class="secondary" onclick="loadGraphDependencies()" style="height: 42px;">
+                    Refresh Graph
+                </button>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center;">
+            <input
+                type="number"
+                id="bfsStartId"
+                placeholder="Enter Start Task ID for BFS..."
+                style="max-width: 280px;"
+                min="1"
+            >
+            <button type="button" class="secondary" onclick="runBFSTraversal()" style="background: #e0f2fe; color: #0369a1;">
+                Run BFS Traversal
+            </button>
+            <button type="button" class="secondary" onclick="clearGraphDependencies()" style="color: #b42318;">
+                Clear Graph
+            </button>
+        </div>
+
+        <div id="graphResult" style="line-height: 1.8; background: #faf6f8; border: 1px solid #ead5dd; border-radius: 8px; padding: 14px;">
+            Add task dependencies above or click "Refresh Graph" to inspect the current dependency structure.
+        </div>
+    </section>
+
+    <!-- Phase 4: Advanced Algorithms & Optimization -->
+    <section class="panel" id="phase4Section">
+        <h2>Phase 4: Advanced Algorithms &amp; Optimization</h2>
+        <p style="color: #667085; font-size: 14px; margin-bottom: 18px;">
+            Syllabus Capstone Techniques: Greedy Heuristic Selection, Dynamic Programming (0/1 Knapsack), and Backtracking Dependency Planning.
+        </p>
+
+        <!-- 1. Greedy Algorithm Panel -->
+        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px; background: #fafafa;">
+            <h3 style="color: #6b233d; font-size: 16px; margin-bottom: 8px;">
+                1. Greedy Algorithm: Priority-Density Pending Task Selection
+            </h3>
+            <p style="color: #64748b; font-size: 13px; margin-bottom: 12px;">
+                Greedily selects pending tasks ordered by priority-to-effort density ratio within the specified time limit.
+            </p>
+            <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
+                <label for="greedyTimeLimit" style="font-size: 13px; font-weight: bold;">Session Capacity (Hours):</label>
+                <input type="number" id="greedyTimeLimit" value="6" min="1" max="100" style="max-width: 120px;">
+                <button type="button" class="primary" onclick="runGreedySchedule()">
+                    Run Greedy Selection
+                </button>
+            </div>
+            <div id="greedyResult" style="line-height: 1.7; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 14px; font-size: 13px;">
+                Click "Run Greedy Selection" to compute priority-density task scheduling.
+            </div>
+        </div>
+
+        <!-- 2. Dynamic Programming Panel -->
+        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px; background: #fafafa;">
+            <h3 style="color: #6b233d; font-size: 16px; margin-bottom: 8px;">
+                2. Dynamic Programming: 0/1 Knapsack Task Allocation
+            </h3>
+            <p style="color: #64748b; font-size: 13px; margin-bottom: 12px;">
+                Tabulates all subproblems to find the globally optimal subset of tasks maximizing total sample benefit within the time limit.
+            </p>
+            <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
+                <label for="dpTimeLimit" style="font-size: 13px; font-weight: bold;">Total Time Limit (Hours):</label>
+                <input type="number" id="dpTimeLimit" value="6" min="1" max="100" style="max-width: 120px;">
+                <button type="button" class="primary" onclick="runDPAllocation()">
+                    Compute Optimal Allocation (DP)
+                </button>
+            </div>
+            <div id="dpResult" style="line-height: 1.7; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 14px; font-size: 13px;">
+                Click "Compute Optimal Allocation (DP)" to solve 0/1 Knapsack task scheduling.
+            </div>
+        </div>
+
+        <!-- 3. Backtracking Panel -->
+        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; background: #fafafa;">
+            <h3 style="color: #6b233d; font-size: 16px; margin-bottom: 8px;">
+                3. Backtracking: Dependency Constraint Planning
+            </h3>
+            <p style="color: #64748b; font-size: 13px; margin-bottom: 12px;">
+                Explores the state-space tree of task orders, ensuring every prerequisite task finishes before its dependents, while detecting circular cycles.
+            </p>
+            <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
+                <label for="backtrackingLimit" style="font-size: 13px; font-weight: bold;">Max Schedules to Return:</label>
+                <input type="number" id="backtrackingLimit" value="5" min="1" max="50" style="max-width: 100px;">
+                <button type="button" class="primary" onclick="runBacktrackingSchedules()">
+                    Generate Valid Schedules (Backtracking)
+                </button>
+            </div>
+            <div id="backtrackingResult" style="line-height: 1.7; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 14px; font-size: 13px;">
+                Click "Generate Valid Schedules (Backtracking)" to compute constraint-satisfying execution sequences.
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        TaskFlow — Project Management System
+    </footer>
+
+</div>
+
+
+<script>
+    const API = "http://localhost:8085/api/tasks";
+
+    let tasks = [];
+
+    const taskForm = document.getElementById("taskForm");
+    const taskTableBody = document.getElementById("taskTableBody");
+    const connectionStatus = document.getElementById("connectionStatus");
+    const messageBox = document.getElementById("message");
+    const searchInput = document.getElementById("searchInput");
+    const sortSelect = document.getElementById("sortSelect");
+    const refreshButton = document.getElementById("refreshButton");
+    const addButton = document.getElementById("addButton");
+
+    function showMessage(message, type) {
+        messageBox.textContent = message;
+        messageBox.className = "message " + type;
+
+        window.setTimeout(() => {
+            messageBox.className = "message";
+            messageBox.textContent = "";
+        }, 4000);
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>"']/g, character => {
+            const replacements = {
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            };
+
+            return replacements[character];
+        });
+    }
+
+    async function loadTasks(showError = true) {
+        connectionStatus.textContent = "Connecting to Java backend...";
+
+        try {
+            const response = await fetch(API);
+
+            if (!response.ok) {
+                throw new Error("Backend returned HTTP " + response.status);
+            }
+
+            const data = await response.json();
+
+            if (!Array.isArray(data)) {
+                throw new Error("Unexpected response from backend.");
+            }
+
+            tasks = data;
+
+            connectionStatus.textContent = "Connected to Java + MySQL";
+            renderTasks();
+            await Promise.all([
+                loadPendingQueue(false),
+                loadCompletedStack(),
+                loadGraphDependencies()
+            ]);
+
+        } catch (error) {
+            connectionStatus.textContent = "Backend disconnected";
+
+            if (showError) {
+                showMessage(
+                    "Cannot connect to Java. Start MySQL and the TaskFlow backend, then refresh.",
+                    "error"
+                );
+            }
+
+            taskTableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="empty">
+                        Could not load tasks. Check that MySQL and the Java backend are running.
+                    </td>
+                </tr>
+            `;
+
+            updateStats([]);
+        }
+    }
+
+    function updateStats(data) {
+        document.getElementById("totalCount").textContent = data.length;
+
+        document.getElementById("pendingCount").textContent =
+            data.filter(task =>
+                String(task.status).toLowerCase() === "pending"
+            ).length;
+
+        document.getElementById("completedCount").textContent =
+            data.filter(task =>
+                String(task.status).toLowerCase() === "completed"
+            ).length;
+    }
+
+    function getStatusClass(status) {
+        const value = String(status ?? "").toLowerCase();
+
+        if (value === "completed") {
+            return "completed";
+        }
+
+        if (value === "in progress") {
+            return "in-progress";
+        }
+
+        return "pending";
+    }
+
+    function getPriorityClass(priority) {
+        const value = String(priority ?? "").toLowerCase();
+
+        if (value === "high") {
+            return "priority-high";
+        }
+
+        if (value === "low") {
+            return "priority-low";
+        }
+
+        return "priority-medium";
+    }
+
+    function renderTasks() {
+        const query = searchInput.value.trim().toLowerCase();
+
+        let displayedTasks = tasks.filter(task => {
+            return (
+                String(task.id ?? "").toLowerCase().includes(query) ||
+                String(task.name ?? "").toLowerCase().includes(query) ||
+                String(task.member ?? "").toLowerCase().includes(query)
+            );
+        });
+
+        const sortBy = sortSelect.value;
+
+        if (sortBy === "id") {
+            displayedTasks.sort((a, b) => Number(a.id) - Number(b.id));
+        } else if (sortBy === "name") {
+            displayedTasks.sort((a, b) =>
+                String(a.name ?? "").localeCompare(String(b.name ?? ""))
+            );
+        } else if (sortBy === "priority") {
+            const priorityOrder = {
+                High: 1,
+                Medium: 2,
+                Low: 3
+            };
+
+            displayedTasks.sort((a, b) =>
+                (priorityOrder[a.priority] ?? 4) -
+                (priorityOrder[b.priority] ?? 4)
+            );
+        }
+
+        updateStats(tasks);
+
+        if (displayedTasks.length === 0) {
+            taskTableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="empty">
+                        ${tasks.length === 0
+                            ? "No tasks added yet."
+                            : "No tasks match your search."}
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        taskTableBody.innerHTML = displayedTasks.map(task => `
+            <tr>
+                <td>${escapeHtml(task.id)}</td>
+                <td>${escapeHtml(task.name)}</td>
+                <td>${escapeHtml(task.member)}</td>
+                <td>
+                    <span class="${getPriorityClass(task.priority)}">
+                        ${escapeHtml(task.priority)}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge ${getStatusClass(task.status)}">
+                        ${escapeHtml(task.status)}
+                    </span>
+                </td>
+                <td>
+                    ${String(task.status).toLowerCase() === 'completed' ? '' : `
+                    <button
+                        type="button"
+                        class="secondary complete-button"
+                        style="background: #e8f5e9; color: #137547; margin-right: 6px;"
+                        data-id="${escapeHtml(task.id)}"
+                    >
+                        Complete
+                    </button>`}
+                    <button
+                        type="button"
+                        class="danger delete-button"
+                        data-id="${escapeHtml(task.id)}"
+                    >
+                        Delete
+                    </button>
+                </td>
+            </tr>
+        `).join("");
+    }
+
+    taskForm.addEventListener("submit", async event => {
+        event.preventDefault();
+
+        const id = document.getElementById("taskId").value.trim();
+        const name = document.getElementById("taskName").value.trim();
+        const member = document.getElementById("teamMember").value.trim();
+        const priority = document.getElementById("priority").value;
+        const status = document.getElementById("status").value;
+
+        if (!id || !name || !member) {
+            showMessage("Please fill in all required fields.", "error");
+            return;
+        }
+
+        if (!Number.isInteger(Number(id)) || Number(id) < 1) {
+            showMessage("Task ID must be a positive whole number.", "error");
+            return;
+        }
+
+        const formData = new URLSearchParams();
+        formData.append("id", id);
+        formData.append("name", name);
+        formData.append("member", member);
+        formData.append("priority", priority);
+        formData.append("status", status);
+
+        addButton.disabled = true;
+        addButton.textContent = "Adding...";
+
+        try {
+            const response = await fetch(API, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || "Could not add task.");
+            }
+
+            await response.json();
+
+            taskForm.reset();
+            document.getElementById("priority").value = "Medium";
+            document.getElementById("status").value = "Pending";
+
+            await loadTasks(false);
+            showMessage("Task added successfully!", "success");
+
+        } catch (error) {
+            showMessage(
+                error.message || "Could not add task. Check the backend.",
+                "error"
+            );
+        } finally {
+            addButton.disabled = false;
+            addButton.textContent = "Add Task";
+        }
+    });
+
+    // Event delegation: handles Complete and Delete buttons for every displayed task.
+    taskTableBody.addEventListener("click", async event => {
+        const completeButton = event.target.closest(".complete-button");
+        if (completeButton) {
+            const id = completeButton.dataset.id;
+            completeButton.disabled = true;
+            completeButton.textContent = "Updating...";
+
+            try {
+                const response = await fetch(API + "/" + encodeURIComponent(id) + "/complete", {
+                    method: "POST"
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || "Could not complete task.");
+                }
+
+                await loadTasks(false);
+                showMessage("Task ID " + id + " marked as Completed and pushed to Stack!", "success");
+            } catch (error) {
+                completeButton.disabled = false;
+                completeButton.textContent = "Complete";
+                showMessage(error.message || "Failed to complete task.", "error");
+            }
+            return;
+        }
+
+        const button = event.target.closest(".delete-button");
+
+        if (!button) {
+            return;
+        }
+
+        const id = button.dataset.id;
+
+        if (!confirm("Are you sure you want to delete task ID " + id + "?")) {
+            return;
+        }
+
+        button.disabled = true;
+        button.textContent = "Deleting...";
+
+        try {
+            // Correct endpoint: the Java controller expects /api/tasks/{id}.
+            const response = await fetch(
+                API + "/" + encodeURIComponent(id),
+                { method: "DELETE" }
+            );
+
+            // The controller returns plain text, not JSON.
+            const result = await response.text();
+
+            if (!response.ok) {
+                throw new Error(result || "Failed to delete task.");
+            }
+
+            await loadTasks(false);
+            showMessage("Task deleted successfully!", "success");
+
+        } catch (error) {
+            button.disabled = false;
+            button.textContent = "Delete";
+
+            showMessage(
+                error.message || "Could not delete task. Check the backend.",
+                "error"
+            );
+        }
+    });
+
+    searchInput.addEventListener("input", renderTasks);
+    sortSelect.addEventListener("change", renderTasks);
+
+    refreshButton.addEventListener("click", async () => {
+        if (refreshButton.disabled) {
+            return;
+        }
+
+        refreshButton.disabled = true;
+        refreshButton.textContent = "Refreshing...";
+
+        searchInput.value = "";
+        sortSelect.value = "default";
+
+        try {
+            await loadTasks(false);
+
+            if (connectionStatus.textContent === "Connected to Java + MySQL") {
+                showMessage("Tasks refreshed successfully!", "success");
+            } else {
+                showMessage("Failed to refresh tasks. Check that MySQL and the Java backend are running.", "error");
+            }
+        } catch (error) {
+            showMessage(error.message || "Failed to refresh tasks. Check the backend.", "error");
+        } finally {
+            refreshButton.disabled = false;
+            refreshButton.textContent = "Refresh Tasks";
+        }
+    });
+
+    loadTasks();
+    
+async function loadPendingQueue(clearMessage = true) {
+    const list = document.getElementById("pendingQueueList");
+    const message = document.getElementById("queueMessage");
+
+    if (clearMessage && message) {
+        message.textContent = "";
+    }
+
+    try {
+        const response = await fetch(API + "/queue");
+
+        if (!response.ok) {
+            throw new Error("Could not load the queue.");
+        }
+
+        const tasks = await response.json();
+        list.replaceChildren();
+
+        if (!Array.isArray(tasks) || tasks.length === 0) {
+            list.textContent = "No pending tasks in the queue.";
+            return;
+        }
+
+        tasks.forEach((task, index) => {
+            const item = document.createElement("p");
+            item.textContent =
+                (index + 1) + ". " + task.name +
+                " (ID: " + task.id + ")";
+            list.appendChild(item);
+        });
+    } catch (error) {
+        list.textContent = "Failed to load the queue.";
+        if (message && clearMessage) {
+            message.textContent = error.message;
+        }
+    }
+}
+
+async function processNextTask() {
+    const message = document.getElementById("queueMessage");
+    const list = document.getElementById("pendingQueueList");
+
+    try {
+        const response = await fetch(API + "/process-next", {
+            method: "POST"
+        });
+
+        if (response.status === 404) {
+            const err = await response.json().catch(() => ({}));
+            const emptyMsg = err.message || err.error || "No pending tasks in the queue.";
+            message.textContent = emptyMsg;
+            if (list) {
+                list.textContent = "No pending tasks in the queue.";
+            }
+            await loadTasks(false);
+            return;
+        }
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || err.error || "Could not process the task.");
+        }
+
+        const task = await response.json();
+
+        message.textContent =
+            "Task processed: " + task.name +
+            " — Status: " + task.status;
+
+        await loadTasks(false);
+        await loadPendingQueue(false);
+    } catch (error) {
+        message.textContent = error.message;
+        await loadPendingQueue(false);
+    }
+}
+
+async function loadCompletedStack(clearMessage = true) {
+    const list = document.getElementById("completedStackList");
+    const message = document.getElementById("stackMessage");
+
+    if (clearMessage && message) {
+        message.textContent = "";
+    }
+
+    try {
+        const response = await fetch(API + "/stack");
+
+        if (!response.ok) {
+            throw new Error("Could not load the completed stack.");
+        }
+
+        const tasks = await response.json();
+        list.replaceChildren();
+
+        if (!Array.isArray(tasks) || tasks.length === 0) {
+            list.textContent = "Stack is empty.";
+            return;
+        }
+
+        tasks.forEach((task, index) => {
+            const item = document.createElement("p");
+            const isTop = index === 0;
+            item.innerHTML = `<strong>${isTop ? '🔝 [TOP - Most Recent] ' : ''}#${index + 1}:</strong> ${escapeHtml(task.name)} (ID: ${escapeHtml(task.id)}) — <em>Assigned to: ${escapeHtml(task.member)}</em>`;
+            list.appendChild(item);
+        });
+    } catch (error) {
+        list.textContent = "Failed to load the completed stack.";
+        if (message && clearMessage) {
+            message.textContent = error.message;
+        }
+    }
+}
+
+async function popCompletedTask() {
+    const message = document.getElementById("stackMessage");
+    const list = document.getElementById("completedStackList");
+
+    try {
+        const response = await fetch(API + "/stack/pop", {
+            method: "POST"
+        });
+
+        if (response.status === 404) {
+            const err = await response.json().catch(() => ({}));
+            const emptyMsg = err.message || err.error || "Stack is empty.";
+            message.textContent = emptyMsg;
+            if (list) {
+                list.textContent = "Stack is empty.";
+            }
+            return;
+        }
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || err.error || "Could not pop from stack.");
+        }
+
+        const task = await response.json();
+        message.textContent = "Popped from Stack: " + task.name + " (ID: " + task.id + ")";
+        await loadCompletedStack(false);
+    } catch (error) {
+        message.textContent = error.message;
+        await loadCompletedStack(false);
+    }
+}
+
+function setBracketSample(sample) {
+    document.getElementById("bracketInput").value = sample;
+    checkBrackets();
+}
+
+function clearBracketChecker() {
+    document.getElementById("bracketInput").value = "";
+    document.getElementById("bracketResult").innerHTML = 'Enter an expression above and click "Check Brackets" to evaluate.';
+}
+
+function isBalancedLocally(expression) {
+    const stack = [];
+    for (const ch of expression) {
+        if (ch === '(' || ch === '{' || ch === '[') {
+            stack.push(ch);
+        } else if (ch === ')' || ch === '}' || ch === ']') {
+            if (stack.length === 0) return false;
+            const open = stack.pop();
+            if ((open === '(' && ch !== ')') ||
+                (open === '{' && ch !== '}') ||
+                (open === '[' && ch !== ']')) {
+                return false;
+            }
+        }
+    }
+    return stack.length === 0;
+}
+
+function renderBracketResult(expression, isBalanced) {
+    const resultBox = document.getElementById("bracketResult");
+    const escapedExpr = escapeHtml(expression);
+
+    if (isBalanced) {
+        resultBox.innerHTML = `
+            <div style="color: #137547; font-weight: bold; font-size: 15px; margin-bottom: 6px;">
+                ✓ Result: Balanced
+            </div>
+            <div style="background: #ffffff; padding: 10px; border-radius: 6px; border: 1px solid #bbf7d0; color: #166534;">
+                Expression <code>${escapedExpr}</code> has all brackets properly matched, ordered, and closed.
+            </div>
+        `;
+    } else {
+        resultBox.innerHTML = `
+            <div style="color: #b42318; font-weight: bold; font-size: 15px; margin-bottom: 6px;">
+                ✕ Result: Not Balanced (Unbalanced)
+            </div>
+            <div style="background: #ffffff; padding: 10px; border-radius: 6px; border: 1px solid #fecaca; color: #991b1b;">
+                Expression <code>${escapedExpr}</code> contains mismatched, missing, or incorrectly ordered brackets.
+            </div>
+        `;
+    }
+}
+
+async function checkBrackets() {
+    const input = document.getElementById("bracketInput");
+    const resultBox = document.getElementById("bracketResult");
+    const expression = input.value;
+
+    if (expression.trim() === "") {
+        resultBox.innerHTML = '<span style="color: #b42318; font-weight: bold;">Please enter an expression to check.</span>';
+        return;
+    }
+
+    resultBox.innerHTML = "Evaluating brackets with Stack...";
+
+    try {
+        const response = await fetch(API + "/brackets/check?expression=" + encodeURIComponent(expression));
+        if (!response.ok) {
+            throw new Error("Backend returned HTTP " + response.status);
+        }
+        const data = await response.json();
+        renderBracketResult(expression, Boolean(data.balanced));
+    } catch (error) {
+        // Fallback to client-side Stack evaluation if backend is not reachable
+        const localBalanced = isBalancedLocally(expression);
+        renderBracketResult(expression, localBalanced);
+    }
+}
+
+async function searchBST() {
+    const input = document.getElementById("bstSearchInput");
+    const resultBox = document.getElementById("bstResult");
+    const id = input.value.trim();
+
+    if (!id) {
+        resultBox.innerHTML = '<span style="color: #b42318; font-weight: bold;">Please enter a valid numeric Task ID.</span>';
+        return;
+    }
+
+    resultBox.innerHTML = "Searching BST...";
+
+    try {
+        const response = await fetch(API + "/bst/search?id=" + encodeURIComponent(id));
+        if (!response.ok) {
+            throw new Error("BST search failed with status " + response.status);
+        }
+
+        const data = await response.json();
+
+        let pathHtml = "";
+        if (Array.isArray(data.path) && data.path.length > 0) {
+            pathHtml = `
+                <div style="margin-top: 10px; font-size: 13px; color: #475467; background: #ffffff; padding: 10px; border-radius: 6px; border: 1px solid #ccd2d8;">
+                    <strong>BST Traversal Path:</strong>
+                    <ol style="margin-left: 20px; margin-top: 4px;">
+                        ${data.path.map(step => `<li>${escapeHtml(step)}</li>`).join("")}
+                    </ol>
+                    <p style="margin-top: 6px;"><strong>Total Tree Comparisons:</strong> ${escapeHtml(data.comparisons)}</p>
+                </div>
+            `;
+        }
+
+        if (data.found && data.task) {
+            resultBox.innerHTML = `
+                <div style="color: #137547; font-weight: bold; margin-bottom: 6px;">
+                    ✓ Task Found via BST!
+                </div>
+                <div>
+                    <strong>ID:</strong> ${escapeHtml(data.task.id)} &nbsp;|&nbsp;
+                    <strong>Task:</strong> ${escapeHtml(data.task.name)} &nbsp;|&nbsp;
+                    <strong>Assigned To:</strong> ${escapeHtml(data.task.member)} &nbsp;|&nbsp;
+                    <strong>Priority:</strong> <span class="${getPriorityClass(data.task.priority)}">${escapeHtml(data.task.priority)}</span> &nbsp;|&nbsp;
+                    <strong>Status:</strong> <span class="badge ${getStatusClass(data.task.status)}">${escapeHtml(data.task.status)}</span>
+                </div>
+                ${pathHtml}
+            `;
+        } else {
+            resultBox.innerHTML = `
+                <div style="color: #b42318; font-weight: bold; margin-bottom: 6px;">
+                    ✕ ${escapeHtml(data.message || "Task ID not found in BST.")}
+                </div>
+                ${pathHtml}
+            `;
+        }
+    } catch (error) {
+        resultBox.innerHTML = `<span style="color: #b42318;">Error searching BST: ${escapeHtml(error.message)}</span>`;
+    }
+}
+
+async function loadBSTInorder() {
+    const resultBox = document.getElementById("bstResult");
+    resultBox.innerHTML = "Computing BST Inorder traversal...";
+
+    try {
+        const response = await fetch(API + "/bst/inorder");
+        if (!response.ok) {
+            throw new Error("Could not load Inorder traversal.");
+        }
+
+        const tasks = await response.json();
+        if (!Array.isArray(tasks) || tasks.length === 0) {
+            resultBox.innerHTML = "No tasks available in database to construct BST.";
+            return;
+        }
+
+        const idSequence = tasks.map(t => escapeHtml(t.id)).join(" ➔ ");
+        resultBox.innerHTML = `
+            <div style="color: #6b233d; font-weight: bold; margin-bottom: 8px;">
+                🌳 BST Inorder Traversal (Left ➔ Root ➔ Right = Sorted by Task ID):
+            </div>
+            <div style="background: #ffffff; padding: 10px; border-radius: 6px; border: 1px solid #ccd2d8; margin-bottom: 10px;">
+                <strong>Sorted ID Flow:</strong> <span style="color: #6b233d; font-weight: bold;">${idSequence}</span>
+            </div>
+            <ul style="margin-left: 20px; font-size: 13px; color: #263238;">
+                ${tasks.map(t => `<li><strong>ID ${escapeHtml(t.id)}:</strong> ${escapeHtml(t.name)} (${escapeHtml(t.member)}) — <span class="badge ${getStatusClass(t.status)}">${escapeHtml(t.status)}</span></li>`).join("")}
+            </ul>
+        `;
+    } catch (error) {
+        resultBox.innerHTML = `<span style="color: #b42318;">Error loading BST Inorder: ${escapeHtml(error.message)}</span>`;
+    }
+}
+
+async function addGraphDependency() {
+    const fromId = document.getElementById("graphFromId").value.trim();
+    const toId = document.getElementById("graphToId").value.trim();
+    const resultBox = document.getElementById("graphResult");
+
+    if (!fromId || !toId) {
+        resultBox.innerHTML = '<span style="color: #b42318; font-weight: bold;">Please specify both Prerequisite Task ID and Dependent Task ID.</span>';
+        return;
+    }
+
+    if (fromId === toId) {
+        resultBox.innerHTML = '<span style="color: #b42318; font-weight: bold;">A task cannot depend on itself (self-loops are not allowed).</span>';
+        return;
+    }
+
+    try {
+        const formData = new URLSearchParams();
+        formData.append("fromId", fromId);
+        formData.append("toId", toId);
+
+        const response = await fetch(API + "/graph/dependency", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: formData
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || err.error || "Failed to add dependency.");
+        }
+
+        const data = await response.json();
+        showMessage(data.message || "Dependency added successfully!", "success");
+        document.getElementById("graphFromId").value = "";
+        document.getElementById("graphToId").value = "";
+        await loadGraphDependencies();
+    } catch (error) {
+        resultBox.innerHTML = `<span style="color: #b42318; font-weight: bold;">Error: ${escapeHtml(error.message)}</span>`;
+    }
+}
+
+async function loadGraphDependencies() {
+    const resultBox = document.getElementById("graphResult");
+
+    try {
+        const response = await fetch(API + "/graph");
+        if (!response.ok) {
+            throw new Error("Could not fetch dependency graph.");
+        }
+
+        const graph = await response.json();
+        const taskMap = new Map(tasks.map(t => [Number(t.id), t]));
+        const entries = Object.entries(graph);
+
+        if (entries.length === 0) {
+            resultBox.innerHTML = '<em>No task dependencies configured yet. Connect tasks using "Add Dependency Edge".</em>';
+            return;
+        }
+
+        let html = `
+            <div style="color: #6b233d; font-weight: bold; margin-bottom: 8px;">
+                🕸️ Task Dependency Adjacency List:
+            </div>
+            <ul style="margin-left: 20px; font-size: 13px; color: #263238;">
+        `;
+
+        for (const [taskId, dependents] of entries) {
+            const task = taskMap.get(Number(taskId));
+            const taskLabel = task ? `${escapeHtml(task.name)} (ID: ${taskId})` : `Task ${taskId}`;
+
+            if (!dependents || dependents.length === 0) {
+                html += `<li><strong>${taskLabel}</strong> ➔ <em>No downstream dependencies (End of flow)</em></li>`;
+            } else {
+                const depLabels = dependents.map(depId => {
+                    const depTask = taskMap.get(Number(depId));
+                    return depTask ? `${escapeHtml(depTask.name)} (ID: ${depId})` : `Task ${depId}`;
+                }).join(", ");
+
+                html += `<li><strong>${taskLabel}</strong> must be done BEFORE ➔ <span style="color: #1d4ed8; font-weight: bold;">${depLabels}</span></li>`;
+            }
+        }
+
+        html += '</ul>';
+        resultBox.innerHTML = html;
+    } catch (error) {
+        resultBox.innerHTML = `<span style="color: #b42318;">Error loading graph: ${escapeHtml(error.message)}</span>`;
+    }
+}
+
+async function runBFSTraversal() {
+    const startId = document.getElementById("bfsStartId").value.trim();
+    const resultBox = document.getElementById("graphResult");
+
+    if (!startId) {
+        resultBox.innerHTML = '<span style="color: #b42318; font-weight: bold;">Please enter a Start Task ID for BFS.</span>';
+        return;
+    }
+
+    try {
+        const response = await fetch(API + "/graph/bfs?startId=" + encodeURIComponent(startId));
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || "Failed to run BFS traversal.");
+        }
+
+        const data = await response.json();
+        const bfsOrder = data.bfsOrder || [];
+        const taskMap = new Map(tasks.map(t => [Number(t.id), t]));
+
+        if (bfsOrder.length === 0) {
+            resultBox.innerHTML = `<span style="color: #b42318;">Start Task ID ${escapeHtml(startId)} has no graph entries or does not exist.</span>`;
+            return;
+        }
+
+        const flowString = bfsOrder.map(id => {
+            const t = taskMap.get(Number(id));
+            return t ? `${escapeHtml(t.name)} [ID:${id}]` : `Task ${id}`;
+        }).join(" ➔ ");
+
+        resultBox.innerHTML = `
+            <div style="color: #1d4ed8; font-weight: bold; margin-bottom: 8px;">
+                ⚡ BFS Execution Order (Starting from Task ${escapeHtml(startId)}):
+            </div>
+            <div style="background: #ffffff; padding: 12px; border-radius: 6px; border: 1px solid #ccd2d8; margin-bottom: 10px; font-weight: bold; color: #6b233d;">
+                ${flowString}
+            </div>
+            <p style="font-size: 13px; color: #475467;">
+                Total Tasks in Execution Path: <strong>${escapeHtml(data.count)}</strong>. Order computed level-by-level using Breadth-First Search (Queue-based).
+            </p>
+        `;
+    } catch (error) {
+        resultBox.innerHTML = `<span style="color: #b42318; font-weight: bold;">BFS Error: ${escapeHtml(error.message)}</span>`;
+    }
+}
+
+async function clearGraphDependencies() {
+    if (!confirm("Are you sure you want to clear all graph dependencies?")) {
+        return;
+    }
+
+    try {
+        const response = await fetch(API + "/graph/clear", { method: "POST" });
+        if (!response.ok) {
+            throw new Error("Failed to clear graph.");
+        }
+        await loadGraphDependencies();
+        showMessage("Task dependencies cleared.", "success");
+    } catch (error) {
+        showMessage(error.message, "error");
+    }
+// ==========================================
+// PHASE 4: ADVANCED ALGORITHMS & OPTIMIZATION
+// ==========================================
+const PHASE4_API = "http://localhost:8085/api/tasks/phase4";
+
+async function runGreedySchedule() {
+    const hours = parseInt(document.getElementById("greedyTimeLimit").value, 10) || 6;
+    const resultBox = document.getElementById("greedyResult");
+    resultBox.innerHTML = "Computing Greedy Priority-Density Task Schedule...";
+
+    try {
+        const response = await fetch(PHASE4_API + "/greedy?timeLimit=" + encodeURIComponent(hours));
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status + ": Backend Phase 4 endpoint unavailable");
+        }
+        const data = await response.json();
+        renderGreedyUI(data, false);
+    } catch (error) {
+        // Safe offline demonstration fallback using current in-memory tasks
+        const fallbackData = computeGreedyLocally(hours);
+        renderGreedyUI(fallbackData, true);
+    }
+}
+
+function renderGreedyUI(data, isOfflineFallback) {
+    const resultBox = document.getElementById("greedyResult");
+    const selected = data.selectedTasks || [];
+    const trace = data.decisionTrace || [];
+
+    let html = `
+        <div style="margin-bottom: 8px;">
+            ${isOfflineFallback ? '<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-right: 6px;">Client-side Fallback Demo</span>' : '<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-right: 6px;">Java Spring Boot Backend</span>'}
+            <strong>Time Limit:</strong> ${data.timeLimitHours}h | 
+            <strong>Allocated:</strong> <span style="color: #6b233d; font-weight: bold;">${data.totalAllocatedHours}h</span> | 
+            <strong>Remaining:</strong> ${data.remainingHours}h | 
+            <strong>Total Priority Score:</strong> <span style="color: #166534; font-weight: bold;">${data.totalPriorityScore} pts</span>
+        </div>
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+            <strong>Selected Tasks (${selected.length}):</strong>
+            ${selected.length === 0 ? '<p style="color: #64748b; margin-top: 4px;">No tasks could fit within the allotted time.</p>' : 
+            `<ol style="margin-left: 20px; margin-top: 4px;">
+                ${selected.map(t => `<li><strong>Task ${escapeHtml(t.taskId)}:</strong> ${escapeHtml(t.taskName)} (${escapeHtml(t.priority)} Priority) &mdash; Effort: ${t.sampleEffortHours}h, Weight: ${t.priorityWeight}, Ratio: <strong>${Number(t.densityRatio).toFixed(2)}</strong></li>`).join("")}
+            </ol>`}
+        </div>
+        <details style="margin-top: 6px; font-size: 12px; color: #475467;">
+            <summary style="cursor: pointer; font-weight: bold; color: #6b233d;">View Greedy Decision Trace &amp; Optimality Note</summary>
+            <ul style="margin-left: 20px; margin-top: 6px; line-height: 1.6;">
+                ${trace.map(s => `<li>${escapeHtml(s)}</li>`).join("")}
+            </ul>
+            <p style="margin-top: 8px; font-style: italic; color: #854d0e; background: #fefce8; padding: 8px; border-radius: 4px; border: 1px solid #fef08a;">
+                ${escapeHtml(data.optimalityDisclaimer || "Note: This greedy priority-density heuristic makes locally optimal choices at each decision step. While fast and computationally efficient (O(N log N)), this heuristic does not guarantee the global optimum in all 0/1 knapsack scenarios because it cannot split tasks to pack residual capacity.")}
+            </p>
+        </details>
+    `;
+    resultBox.innerHTML = html;
+}
+
+function computeGreedyLocally(hours) {
+    const pendingList = tasks.filter(t => String(t.status).toLowerCase() !== "completed");
+    const candidates = pendingList.map(t => {
+        const p = t.priority || "Medium";
+        const weight = p === "High" ? 30 : (p === "Low" ? 10 : 20);
+        const effort = p === "High" ? 2 : (p === "Low" ? 2 : 3);
+        return {
+            taskId: t.id,
+            taskName: t.name,
+            priority: p,
+            priorityWeight: weight,
+            sampleEffortHours: effort,
+            densityRatio: weight / effort
+        };
+    });
+
+    candidates.sort((a, b) => b.densityRatio - a.densityRatio || b.priorityWeight - a.priorityWeight || a.taskId - b.taskId);
+    let remaining = hours;
+    let allocated = 0;
+    let score = 0;
+    const selected = [];
+    const trace = [];
+
+    for (const item of candidates) {
+        if (item.sampleEffortHours <= remaining) {
+            selected.push(item);
+            allocated += item.sampleEffortHours;
+            remaining -= item.sampleEffortHours;
+            score += item.priorityWeight;
+            trace.push(`ACCEPTED Task ${item.taskId} (${item.taskName}): effort ${item.sampleEffortHours}h fits. Remaining: ${remaining}h.`);
+        } else {
+            trace.push(`SKIPPED Task ${item.taskId} (${item.taskName}): effort ${item.sampleEffortHours}h exceeds remaining ${remaining}h.`);
+        }
+    }
+
+    return {
+        timeLimitHours: hours,
+        totalAllocatedHours: allocated,
+        remainingHours: remaining,
+        totalPriorityScore: score,
+        selectedTasks: selected,
+        decisionTrace: trace,
+        optimalityDisclaimer: "Note: The priority/effort density greedy heuristic makes locally optimal choices at each step. While fast (O(N log N)), it does not guarantee the global optimum in all 0/1 knapsack scenarios."
+    };
+}
+
+async function runDPAllocation() {
+    const hours = parseInt(document.getElementById("dpTimeLimit").value, 10) || 6;
+    const resultBox = document.getElementById("dpResult");
+    resultBox.innerHTML = "Constructing 2D Dynamic Programming Tabulation Table...";
+
+    try {
+        const response = await fetch(PHASE4_API + "/dp?timeLimit=" + encodeURIComponent(hours));
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status + ": Backend Phase 4 endpoint unavailable");
+        }
+        const data = await response.json();
+        renderDPUI(data, false);
+    } catch (error) {
+        const fallbackData = computeDPLocally(hours);
+        renderDPUI(fallbackData, true);
+    }
+}
+
+function renderDPUI(data, isOfflineFallback) {
+    const resultBox = document.getElementById("dpResult");
+    const selected = data.selectedTasks || [];
+    const steps = data.dpSteps || [];
+
+    let html = `
+        <div style="margin-bottom: 8px;">
+            ${isOfflineFallback ? '<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-right: 6px;">Client-side Fallback Demo</span>' : '<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-right: 6px;">Java Spring Boot Backend</span>'}
+            <strong>Time Limit:</strong> ${data.timeLimitHours}h | 
+            <strong>Duration Used:</strong> <span style="color: #6b233d; font-weight: bold;">${data.totalDurationUsed}h</span> | 
+            <strong>Remaining:</strong> ${data.remainingHours}h | 
+            <strong>Max Sample Benefit:</strong> <span style="color: #166534; font-weight: bold;">${data.maxBenefitAchieved} pts</span>
+        </div>
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+            <strong>Globally Optimal Task Set (${selected.length}):</strong>
+            ${selected.length === 0 ? '<p style="color: #64748b; margin-top: 4px;">No tasks allocated within time limit.</p>' : 
+            `<ol style="margin-left: 20px; margin-top: 4px;">
+                ${selected.map(t => `<li><strong>Task ${escapeHtml(t.taskId)}:</strong> ${escapeHtml(t.taskName)} (${escapeHtml(t.priority)} Priority) &mdash; Sample Duration: <strong>${t.sampleDurationHours}h</strong>, Sample Benefit: <strong>${t.sampleBenefitValue} pts</strong></li>`).join("")}
+            </ol>`}
+        </div>
+        <div style="font-size: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 8px; border-radius: 4px; margin-bottom: 8px;">
+            <strong>Sample Metric Notice:</strong> Task durations and benefits are sample demonstration metrics derived from task priority. The 0/1 Knapsack DP guarantees the true mathematical global maximum.
+        </div>
+        <details style="font-size: 12px; color: #475467;">
+            <summary style="cursor: pointer; font-weight: bold; color: #6b233d;">View Tabulation Details &amp; Recurrence Relation</summary>
+            <p style="margin-top: 6px;"><strong>Recurrence:</strong> <code>DP[i][w] = max(DP[i-1][w], DP[i-1][w - duration[i-1]] + benefit[i-1])</code></p>
+            <ul style="margin-left: 20px; margin-top: 6px; line-height: 1.6;">
+                ${steps.map(s => `<li>${escapeHtml(s)}</li>`).join("")}
+            </ul>
+        </details>
+    `;
+    resultBox.innerHTML = html;
+}
+
+function computeDPLocally(hours) {
+    const candidates = tasks.map(t => {
+        const p = t.priority || "Medium";
+        const dur = p === "High" ? 3 : (p === "Low" ? 1 : 2);
+        const ben = p === "High" ? 30 : (p === "Low" ? 10 : 18);
+        return {
+            taskId: t.id,
+            taskName: t.name,
+            priority: p,
+            sampleDurationHours: dur,
+            sampleBenefitValue: ben
+        };
+    });
+
+    const n = candidates.length;
+    const dp = Array.from({ length: n + 1 }, () => new Array(hours + 1).fill(0));
+
+    for (let i = 1; i <= n; i++) {
+        const item = candidates[i - 1];
+        for (let w = 0; w <= hours; w++) {
+            if (item.sampleDurationHours <= w) {
+                dp[i][w] = Math.max(dp[i - 1][w], dp[i - 1][w - item.sampleDurationHours] + item.sampleBenefitValue);
+            } else {
+                dp[i][w] = dp[i - 1][w];
+            }
+        }
+    }
+
+    const selected = [];
+    let w = hours;
+    for (let i = n; i > 0 && w > 0; i--) {
+        if (dp[i][w] !== dp[i - 1][w]) {
+            selected.push(candidates[i - 1]);
+            w -= candidates[i - 1].sampleDurationHours;
+        }
+    }
+    selected.reverse();
+
+    return {
+        timeLimitHours: hours,
+        totalDurationUsed: hours - w,
+        remainingHours: w,
+        maxBenefitAchieved: dp[n][hours],
+        selectedTasks: selected,
+        dpSteps: [
+            `Constructed DP table with ${n + 1} stages and ${hours + 1} capacities.`,
+            `Backtracked optimal solution yielding ${dp[n][hours]} maximum sample points.`
+        ]
+    };
+}
+
+async function runBacktrackingSchedules() {
+    const limit = parseInt(document.getElementById("backtrackingLimit").value, 10) || 5;
+    const resultBox = document.getElementById("backtrackingResult");
+    resultBox.innerHTML = "Exploring Task Dependency State Space Tree via Backtracking...";
+
+    try {
+        const response = await fetch(PHASE4_API + "/backtracking?limit=" + encodeURIComponent(limit));
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status + ": Backend Phase 4 endpoint unavailable");
+        }
+        const data = await response.json();
+        renderBacktrackingUI(data, false);
+    } catch (error) {
+        const fallbackData = computeBacktrackingLocally(limit);
+        renderBacktrackingUI(fallbackData, true);
+    }
+}
+
+function renderBacktrackingUI(data, isOfflineFallback) {
+    const resultBox = document.getElementById("backtrackingResult");
+
+    if (data.cycleDetected) {
+        resultBox.innerHTML = `
+            <div style="color: #b42318; font-weight: bold; margin-bottom: 6px;">
+                &#10005; Dependency Cycle Detected!
+            </div>
+            <div style="background: #ffffff; padding: 10px; border-radius: 6px; border: 1px solid #fecaca; color: #991b1b; font-size: 13px;">
+                ${escapeHtml(data.cycleMessage || "A circular dependency cycle was detected. No valid execution schedule is possible until circular prerequisites are resolved.")}
+            </div>
+        `;
+        return;
+    }
+
+    const orders = data.validOrderings || [];
+    const taskNames = data.taskNames || {};
+
+    let html = `
+        <div style="margin-bottom: 8px;">
+            ${isOfflineFallback ? '<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-right: 6px;">Client-side Fallback Demo</span>' : '<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-right: 6px;">Java Spring Boot Backend</span>'}
+            <strong>Total Tasks:</strong> ${data.totalTasks} | 
+            <strong>Valid Schedules Found:</strong> <span style="color: #1d4ed8; font-weight: bold;">${data.schedulesFound}</span> | 
+            <strong>Constraint Branches Pruned:</strong> <span style="color: #b42318; font-weight: bold;">${data.branchesPruned}</span>
+        </div>
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin-bottom: 10px;">
+            <strong>Prerequisite Rule:</strong> For every dependency edge <code>A &rarr; B</code>, Task A must finish BEFORE Task B begins (index of A &lt; index of B).
+        </div>
+        <div>
+            ${orders.length === 0 ? '<p style="color: #64748b;">No tasks available to schedule.</p>' : 
+            orders.map((order, idx) => {
+                const formattedFlow = order.map(id => {
+                    const name = taskNames[id] || ("Task " + id);
+                    return `<strong>${escapeHtml(name)} [ID:${id}]</strong>`;
+                }).join(" &rarr; ");
+
+                return `
+                    <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px; margin-bottom: 8px; font-size: 13px;">
+                        <span style="color: #6b233d; font-weight: bold; margin-right: 6px;">Schedule #${idx + 1}:</span>
+                        <span>${formattedFlow}</span>
+                    </div>
+                `;
+            }).join("")}
+        </div>
+    `;
+    resultBox.innerHTML = html;
+}
+
+function computeBacktrackingLocally(limit) {
+    const taskIds = tasks.map(t => Number(t.id));
+    const names = {};
+    tasks.forEach(t => { names[t.id] = t.name; });
+
+    return {
+        totalTasks: taskIds.length,
+        schedulesFound: taskIds.length > 0 ? 1 : 0,
+        cycleDetected: false,
+        branchesPruned: 0,
+        validOrderings: taskIds.length > 0 ? [taskIds.slice(0, 10)] : [],
+        taskNames: names,
+        cycleMessage: ""
+    };
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Tree &amp; Binary Search Tree (BST) — TaskFlow</title>
+  <meta name="description" content="Dynamic Binary Search Tree organizing TaskFlow users by unique User ID with visual hierarchy, traversals, and O(log n) search.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <script src="js/api.js?v=4.5"></script>
+  <script>
+    // Immediate pre-render access guard: User Tree & BST is strictly Admin-only
+    const immediateUser = (window.API || API).getUser();
+    if (!immediateUser || !immediateUser.role || immediateUser.role.toUpperCase() !== 'ADMIN') {
+      window.location.replace('dashboard.html?error=forbidden');
+    }
+  </script>
+  <style>
+    .tree-viewport-container {
+      background: #0f172a;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px 12px;
+      position: relative;
+      border: 1px solid #1e293b;
+      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.4);
+    }
+    .tree-svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-width: 1012px;
+      max-height: 420px;
+      margin: 0 auto;
+    }
+    .tree-node circle {
+      stroke-width: 1.75px;
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+    .tree-node text {
+      font-family: var(--font-sans);
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
+      user-select: none;
+    }
+    .tree-node.highlight circle {
+      stroke: #f59e0b !important;
+      stroke-width: 3px !important;
+      filter: drop-shadow(0 0 8px #f59e0b);
+    }
+    .tree-node.match circle {
+      stroke: #10b981 !important;
+      stroke-width: 3.5px !important;
+      filter: drop-shadow(0 0 10px #10b981);
+    }
+    .tree-edge {
+      stroke: #334155;
+      stroke-width: 1.5px;
+      stroke-linecap: round;
+      transition: all 0.25s ease;
+    }
+    .tree-edge.highlight {
+      stroke: #f59e0b !important;
+      stroke-width: 2.75px !important;
+    }
+    .traversal-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 9999px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--navy-900);
+      margin: 4px;
+      transition: all 0.2s ease;
+    }
+    .traversal-pill.role-admin {
+      border-color: #fde047;
+      background: #fefce8;
+      color: #854d0e;
+    }
+    .traversal-pill.role-member {
+      border-color: #bfdbfe;
+      background: #eff6ff;
+      color: #1e40af;
+    }
+    .traversal-pill:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+    .trace-item {
+      padding: 8px 12px;
+      border-left: 3px solid #cbd5e1;
+      background: #f8fafc;
+      margin-bottom: 6px;
+      border-radius: 0 4px 4px 0;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.5;
+    }
+    .trace-item.match {
+      border-left-color: #10b981;
+      background: #ecfdf5;
+      color: #065f46;
+      font-weight: 700;
+    }
+    .trace-item.left {
+      border-left-color: #3b82f6;
+      background: #eff6ff;
+      color: #1e40af;
+    }
+    .trace-item.right {
+      border-left-color: #8b5cf6;
+      background: #f5f3ff;
+      color: #5b21b6;
+    }
+    .trace-item.fail {
+      border-left-color: #ef4444;
+      background: #fef2f2;
+      color: #991b1b;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <div id="sidebar-container"></div>
+
+    <div class="app-main">
+      <div id="header-container"></div>
+
+      <main class="page-body">
+
+        <!-- Hero Explanation Banner -->
+        <div class="card" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; margin-bottom: 24px; position: relative; overflow: hidden;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+            <div style="max-width: 660px; position: relative; z-index: 2;">
+              <span class="welcome-pill" style="background: rgba(99, 102, 241, 0.25); color: #c7d2fe;">Phase 2.1: Non-Linear Hierarchical Structures</span>
+              <h1 style="font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px;">
+                User Tree &amp; Balanced Binary Search Tree (BST)
+              </h1>
+              <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.6;">
+                TaskFlow user accounts organized hierarchically by unique <strong>User ID</strong> in a <strong>Height-Balanced Binary Search Tree</strong> (Median Partitioning). Maintains optimal $O(\log N)$ search paths ($\le 5$ levels for 17 users), visual node hierarchy, and Inorder, Preorder, and Postorder traversals.
+              </p>
+            </div>
+            <div style="display: flex; gap: 14px; flex-wrap: wrap; position: relative; z-index: 2;">
+              <div style="background: rgba(255, 255, 255, 0.08); padding: 14px 20px; border-radius: var(--radius-md); text-align: center; border: 1px solid rgba(255,255,255,0.12);">
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; letter-spacing: 0.05em;">Total Users</div>
+                <div id="stat-tree-users" style="font-size: 1.8rem; font-weight: 800; color: #ffffff;">0</div>
+                <span style="font-size: 0.72rem; color: #94a3b8; display: block;">Active in tree</span>
+              </div>
+              <div style="background: rgba(255, 255, 255, 0.08); padding: 14px 20px; border-radius: var(--radius-md); text-align: center; border: 1px solid rgba(255,255,255,0.12);">
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; letter-spacing: 0.05em;">Tree Height</div>
+                <div id="stat-tree-height" style="font-size: 1.8rem; font-weight: 800; color: #38bdf8;">0</div>
+                <span style="font-size: 0.72rem; color: #7dd3fc; display: block;">Optimal O(log N)</span>
+              </div>
+              <div style="background: rgba(255, 255, 255, 0.08); padding: 14px 20px; border-radius: var(--radius-md); text-align: center; border: 1px solid rgba(255,255,255,0.12);">
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; letter-spacing: 0.05em;">Leaf Nodes</div>
+                <div id="stat-tree-leaves" style="font-size: 1.8rem; font-weight: 800; color: #34d399;">0</div>
+                <span style="font-size: 0.72rem; color: #6ee7b7; display: block;">Balanced spread</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Operations Row: Search & Traversals -->
+        <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 24px; margin-bottom: 24px;">
+
+          <!-- Card 1: BST Search Panel -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">BST User Search with Decision Path</h3>
+                <p class="card-subtitle">Key comparison walk from root to target ($O(\log N)$ average complexity)</p>
+              </div>
+              <span class="complexity-tag">O(log N)</span>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+              <input type="number" id="input-search-id" class="form-input" placeholder="Enter User ID (e.g. 4, 8, 12)" min="1" style="max-width: 220px;" value="4">
+              <button id="btn-search-user" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                Search BST
+              </button>
+              <button id="btn-reset-tree" class="btn btn-secondary btn-sm" title="Clear highlights">Reset View</button>
+            </div>
+
+            <!-- Search Result Callout -->
+            <div id="search-result-box" style="display: none; padding: 14px; border-radius: var(--radius-md); margin-bottom: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <strong id="search-result-title" style="font-size: 0.95rem;">-</strong>
+                <span id="search-result-comparisons" class="badge" style="font-size: 0.75rem; padding: 2px 8px; border-radius: 9999px;">-</span>
+              </div>
+              <div id="search-result-user-card" style="margin-top: 10px; padding: 10px; background: #ffffff; border-radius: 6px; border: 1px solid var(--slate-200); display: none;">
+                <!-- Populated with safe user details -->
+              </div>
+            </div>
+
+            <!-- Decision Path Trace Log -->
+            <div style="font-size: 0.8rem; font-weight: 700; color: var(--slate-500); text-transform: uppercase; margin-bottom: 6px;">
+              Decision Path Through Tree:
+            </div>
+            <div id="trace-container" style="max-height: 190px; overflow-y: auto; padding-right: 4px;">
+              <div style="font-size: 0.85rem; color: var(--slate-400); padding: 12px 0;">
+                Enter a User ID and click "Search BST" to trace the path through the tree.
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Traversal Controls & Results -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Tree Traversals</h3>
+                <p class="card-subtitle">Systematic tree walks across all user nodes ($O(N)$ complexity)</p>
+              </div>
+              <span class="complexity-tag">O(N)</span>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+              <button id="btn-inorder" class="btn btn-primary btn-sm" title="Left -> Root -> Right">
+                Inorder (Sorted by ID)
+              </button>
+              <button id="btn-preorder" class="btn btn-secondary btn-sm" title="Root -> Left -> Right">
+                Preorder (Root First)
+              </button>
+              <button id="btn-postorder" class="btn btn-secondary btn-sm" title="Left -> Right -> Root">
+                Postorder (Bottom-Up)
+              </button>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span id="traversal-type-label" style="font-size: 0.82rem; font-weight: 700; color: var(--slate-600); text-transform: uppercase;">
+                Inorder Traversal Sequence:
+              </span>
+              <span id="traversal-count-badge" style="font-size: 0.78rem; color: var(--slate-500);">0 users</span>
+            </div>
+
+            <div id="traversal-results-container" style="min-height: 140px; max-height: 220px; overflow-y: auto; background: #ffffff; border: 1px solid var(--slate-200); border-radius: var(--radius-md); padding: 14px;">
+              <div style="text-align: center; color: var(--slate-400); padding: 30px;">Loading traversal...</div>
+            </div>
+
+            <div style="font-size: 0.75rem; color: var(--slate-500); margin-top: 10px; line-height: 1.4;">
+              <strong>Note on Inorder Traversal:</strong> In a valid Binary Search Tree, an Inorder traversal visit order is guaranteed to produce keys in strictly ascending numerical order.
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Visual Tree Diagram Card -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Visual Binary Search Tree Hierarchy</h3>
+              <p class="card-subtitle">Nodes represent users; branch positions satisfy the BST invariant: Left Child &lt; Parent &lt; Right Child</p>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center; font-size: 0.8rem;">
+              <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="width: 12px; height: 12px; border-radius: 50%; background: #2563eb; display: inline-block;"></span> Root / Node
+              </span>
+              <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="width: 12px; height: 12px; border-radius: 50%; background: #f59e0b; display: inline-block;"></span> Path Node
+              </span>
+              <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="width: 12px; height: 12px; border-radius: 50%; background: #10b981; display: inline-block;"></span> Target Match
+              </span>
+            </div>
+          </div>
+
+          <div class="tree-viewport-container" id="tree-container">
+            <div style="text-align: center; padding: 100px; color: #94a3b8;">
+              <div class="spin-animation" style="width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #38bdf8; border-radius: 50%; margin: 0 auto 16px;"></div>
+              Constructing User Binary Search Tree from MySQL...
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="js/navbar.js?v=4.5"></script>
+  <script>
+    // HTML Escape Utility
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+    if (typeof window !== 'undefined') {
+      window.escapeHtml = escapeHtml;
+    }
+
+    let currentTreeData = null;
+    let nodeCoordinatesMap = new Map();
+    let currentHighlightedIds = new Set();
+    let matchedNodeId = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      let user = API.requireAuth();
+      if (!user) return;
+
+      try {
+        const fresh = await API.syncCurrentUser();
+        if (fresh) user = fresh;
+      } catch (e) {
+        console.warn('Session sync warning:', e);
+      }
+
+      const isAdmin = user.role && user.role.toUpperCase() === 'ADMIN';
+      if (!isAdmin) {
+        window.location.replace('dashboard.html?error=forbidden');
+        return;
+      }
+
+      renderAppLayout('user-tree', 'User Tree & Binary Search Tree (BST)', user);
+
+      // Bind Event Listeners first to ensure interactivity even during async loads
+      document.getElementById('btn-inorder').addEventListener('click', () => loadTraversal('inorder'));
+      document.getElementById('btn-preorder').addEventListener('click', () => loadTraversal('preorder'));
+      document.getElementById('btn-postorder').addEventListener('click', () => loadTraversal('postorder'));
+      document.getElementById('btn-search-user').addEventListener('click', handleUserSearch);
+      document.getElementById('input-search-id').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleUserSearch();
+      });
+      document.getElementById('btn-reset-tree').addEventListener('click', () => {
+        currentHighlightedIds.clear();
+        matchedNodeId = null;
+        renderVisualTree(currentTreeData);
+        document.getElementById('search-result-box').style.display = 'none';
+        document.getElementById('trace-container').innerHTML = `
+          <div style="font-size: 0.85rem; color: var(--slate-400); padding: 12px 0;">
+            Highlights cleared. Enter a User ID to trace a search path.
+          </div>
+        `;
+      });
+
+      // Initialize Page Data independently
+      try {
+        await loadTreeData();
+      } catch (err) {
+        console.error('Initial loadTreeData error:', err);
+      }
+
+      try {
+        await loadTraversal('inorder');
+      } catch (err) {
+        console.error('Initial loadTraversal error:', err);
+      }
+    });
+
+    async function loadTreeData() {
+      try {
+        const data = await API.getUserTree();
+        currentTreeData = data;
+
+        document.getElementById('stat-tree-users').textContent = data.totalUsers ?? 0;
+        document.getElementById('stat-tree-height').textContent = data.height ?? 0;
+        document.getElementById('stat-tree-leaves').textContent = data.leafCount ?? 0;
+
+        renderVisualTree(data);
+      } catch (err) {
+        console.error('Failed to load User BST:', err);
+        document.getElementById('tree-container').innerHTML = `
+          <div style="text-align: center; padding: 60px 20px; color: #f87171;">
+            <p style="font-weight: 700; font-size: 1.1rem; margin-bottom: 6px;">Failed to load User Binary Search Tree</p>
+            <p style="font-size: 0.85rem; color: #cbd5e1;">${escapeHtml(err.message || 'Cannot reach backend server')}</p>
+          </div>
+        `;
+      }
+    }
+
+    async function loadTraversal(type) {
+      const container = document.getElementById('traversal-results-container');
+      const label = document.getElementById('traversal-type-label');
+      const badge = document.getElementById('traversal-count-badge');
+
+      const btnIn = document.getElementById('btn-inorder');
+      const btnPre = document.getElementById('btn-preorder');
+      const btnPost = document.getElementById('btn-postorder');
+
+      btnIn.className = 'btn btn-secondary btn-sm';
+      btnPre.className = 'btn btn-secondary btn-sm';
+      btnPost.className = 'btn btn-secondary btn-sm';
+
+      let fetchPromise;
+      if (type === 'preorder') {
+        btnPre.className = 'btn btn-primary btn-sm';
+        label.textContent = 'Preorder Traversal Sequence (Root ➔ Left ➔ Right):';
+        fetchPromise = API.getUserBSTPreorder();
+      } else if (type === 'postorder') {
+        btnPost.className = 'btn btn-primary btn-sm';
+        label.textContent = 'Postorder Traversal Sequence (Left ➔ Right ➔ Root):';
+        fetchPromise = API.getUserBSTPostorder();
+      } else {
+        btnIn.className = 'btn btn-primary btn-sm';
+        label.textContent = 'Inorder Traversal Sequence (Sorted Ascending by ID):';
+        fetchPromise = API.getUserBSTInorder();
+      }
+
+      container.innerHTML = '<div style="text-align: center; color: var(--slate-400); padding: 30px;">Loading traversal...</div>';
+
+      try {
+        const users = await fetchPromise;
+        badge.textContent = `${users.length} users`;
+
+        if (!users || users.length === 0) {
+          container.innerHTML = '<div style="text-align: center; color: var(--slate-400); padding: 30px;">Tree is empty.</div>';
+          return;
+        }
+
+        container.innerHTML = users.map((u, idx) => {
+          const roleClass = (u.role && u.role.toUpperCase() === 'ADMIN') ? 'role-admin' : 'role-member';
+          return `
+            <span class="traversal-pill ${roleClass}" title="User ID: #${u.id} | Username: ${escapeHtml(u.username)} | Role: ${escapeHtml(u.role)}">
+              <span style="opacity: 0.6; font-size: 0.72rem;">#${idx + 1}</span>
+              <strong>#${u.id}</strong>: ${escapeHtml(u.displayName || u.username)}
+              <span style="font-size: 0.68rem; opacity: 0.75; text-transform: uppercase;">(${escapeHtml(u.role)})</span>
+            </span>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error('Traversal failed:', err);
+        badge.textContent = 'Error';
+        container.innerHTML = `<div style="color: #ef4444; padding: 20px; text-align: center;">Failed to load traversal: ${escapeHtml(err.message || 'Server error')}</div>`;
+      }
+    }
+
+    async function handleUserSearch() {
+      const input = document.getElementById('input-search-id');
+      const val = parseInt(input.value, 10);
+
+      if (isNaN(val) || val <= 0) {
+        API.showToast('Please enter a valid positive User ID', 'warning');
+        return;
+      }
+
+      const resultBox = document.getElementById('search-result-box');
+      const title = document.getElementById('search-result-title');
+      const compBadge = document.getElementById('search-result-comparisons');
+      const userCard = document.getElementById('search-result-user-card');
+      const traceContainer = document.getElementById('trace-container');
+
+      resultBox.style.display = 'block';
+      resultBox.style.background = '#f8fafc';
+      resultBox.style.border = '1px solid #cbd5e1';
+      resultBox.style.color = '#334155';
+      title.textContent = `Searching User #${val}...`;
+      compBadge.textContent = '...';
+      compBadge.style.background = '#94a3b8';
+      compBadge.style.color = '#ffffff';
+      userCard.style.display = 'none';
+      traceContainer.innerHTML = '<div style="font-size: 0.85rem; color: var(--slate-400); padding: 8px 0;">Evaluating BST path...</div>';
+
+      try {
+        const res = await API.searchUserBST(val);
+        currentHighlightedIds.clear();
+        matchedNodeId = null;
+
+        if (res.found && res.user) {
+          resultBox.style.background = '#ecfdf5';
+          resultBox.style.border = '1px solid #a7f3d0';
+          resultBox.style.color = '#065f46';
+          title.textContent = `Match Found: User #${res.user.id} exists in tree`;
+          compBadge.textContent = `${res.comparisons} comparisons`;
+          compBadge.style.background = '#10b981';
+          compBadge.style.color = '#ffffff';
+
+          matchedNodeId = res.user.id;
+
+          const u = res.user;
+          userCard.style.display = 'block';
+          userCard.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong style="color: var(--navy-900); font-size: 0.95rem;">${escapeHtml(u.displayName || u.username)}</strong>
+                <span style="font-size: 0.8rem; color: var(--slate-500); margin-left: 6px;">(@${escapeHtml(u.username)})</span>
+              </div>
+              <span class="role-badge ${u.role && u.role.toUpperCase() === 'ADMIN' ? 'admin' : 'member'}">${escapeHtml(u.role)}</span>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--slate-600); margin-top: 6px;">
+              Assigned Workload Member: <strong>${escapeHtml(u.assignedMemberName || 'None')}</strong> &bull; Status: <strong>${u.active ? 'Active' : 'Inactive'}</strong>
+            </div>
+          `;
+          API.showToast(res.message, 'success');
+        } else {
+          resultBox.style.background = '#fef2f2';
+          resultBox.style.border = '1px solid #fecaca';
+          resultBox.style.color = '#991b1b';
+          title.textContent = `Not Found: User #${val} does not exist in BST`;
+          compBadge.textContent = `${res.comparisons} comparisons`;
+          compBadge.style.background = '#ef4444';
+          compBadge.style.color = '#ffffff';
+
+          userCard.style.display = 'none';
+          API.showToast(res.message, 'warning');
+        }
+
+        // Parse decision path to extract visited node IDs for tree highlighting
+        const path = res.decisionPath || [];
+        traceContainer.innerHTML = path.map(step => {
+          let stepClass = 'trace-item';
+          if (step.includes('match found')) {
+            stepClass += ' match';
+          } else if (step.includes('branching LEFT')) {
+            stepClass += ' left';
+          } else if (step.includes('branching RIGHT')) {
+            stepClass += ' right';
+          } else if (step.includes('null pointer')) {
+            stepClass += ' fail';
+          }
+
+          const idMatch = step.match(/Node #(\d+)/);
+          if (idMatch && idMatch[1]) {
+            currentHighlightedIds.add(parseInt(idMatch[1], 10));
+          }
+
+          return `<div class="${stepClass}">${escapeHtml(step)}</div>`;
+        }).join('');
+
+        renderVisualTree(currentTreeData);
+      } catch (err) {
+        console.error('Search failed:', err);
+        resultBox.style.background = '#fef2f2';
+        resultBox.style.border = '1px solid #fecaca';
+        resultBox.style.color = '#991b1b';
+        title.textContent = 'Search Error';
+        compBadge.textContent = 'Failed';
+        compBadge.style.background = '#ef4444';
+        traceContainer.innerHTML = `<div class="trace-item fail">Error: ${escapeHtml(err.message || 'Server error')}</div>`;
+        API.showToast('Search failed: ' + err.message, 'error');
+      }
+    }
+
+    // ==========================================
+    // VISUAL TREE SVG RENDERER (INORDER EMBEDDING)
+    // ==========================================
+    function renderVisualTree(data) {
+      const container = document.getElementById('tree-container');
+      if (!data || !data.root) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 80px 20px; color: #94a3b8;">
+            <p style="font-weight: 700; font-size: 1.1rem; margin-bottom: 6px;">The User BST is Empty</p>
+            <p style="font-size: 0.85rem;">No user accounts are currently present to populate the tree.</p>
+          </div>
+        `;
+        return;
+      }
+
+      nodeCoordinatesMap.clear();
+
+      // Step 1: Assign X coordinate via Inorder Rank, and Y coordinate via Depth
+      let inorderRank = 0;
+      function computeCoordinates(node, depth = 0) {
+        if (!node) return;
+        computeCoordinates(node.left, depth + 1);
+        nodeCoordinatesMap.set(node.id, {
+          node: node,
+          rank: inorderRank++,
+          depth: depth
+        });
+        computeCoordinates(node.right, depth + 1);
+      }
+      computeCoordinates(data.root, 0);
+
+      const totalNodes = nodeCoordinatesMap.size;
+      const xSpacing = 58;
+      const ySpacing = 72;
+      const xPadding = 42;
+      const yPadding = 44;
+
+      const maxRank = Math.max(0, totalNodes - 1);
+      const treeWidth = Math.max(760, (maxRank * xSpacing) + (xPadding * 2));
+      const treeHeight = Math.max(340, ((data.height - 1) * ySpacing) + (yPadding * 2));
+
+      // Calculate absolute (x, y)
+      nodeCoordinatesMap.forEach((info) => {
+        info.x = xPadding + (info.rank * xSpacing);
+        info.y = yPadding + (info.depth * ySpacing);
+      });
+
+      // Step 2: Render SVG edges and nodes
+      let edgesHtml = '';
+      let nodesHtml = '';
+
+      function renderBranches(node) {
+        if (!node) return;
+        const parentCoord = nodeCoordinatesMap.get(node.id);
+
+        if (node.left) {
+          const childCoord = nodeCoordinatesMap.get(node.left.id);
+          const isEdgeHighlight = currentHighlightedIds.has(node.id) && currentHighlightedIds.has(node.left.id);
+          edgesHtml += `
+            <line class="tree-edge ${isEdgeHighlight ? 'highlight' : ''}" 
+                  x1="${parentCoord.x}" y1="${parentCoord.y}" 
+                  x2="${childCoord.x}" y2="${childCoord.y}" />
+          `;
+          renderBranches(node.left);
+        }
+
+        if (node.right) {
+          const childCoord = nodeCoordinatesMap.get(node.right.id);
+          const isEdgeHighlight = currentHighlightedIds.has(node.id) && currentHighlightedIds.has(node.right.id);
+          edgesHtml += `
+            <line class="tree-edge ${isEdgeHighlight ? 'highlight' : ''}" 
+                  x1="${parentCoord.x}" y1="${parentCoord.y}" 
+                  x2="${childCoord.x}" y2="${childCoord.y}" />
+          `;
+          renderBranches(node.right);
+        }
+
+        const isMatch = (node.id === matchedNodeId);
+        const isHighlight = currentHighlightedIds.has(node.id);
+        const isRoot = (node.id === data.root.id);
+        const isAdmin = (node.role && node.role.toUpperCase() === 'ADMIN');
+
+        let circleFill = isAdmin ? '#1e3a8a' : '#0369a1';
+        let circleStroke = isAdmin ? '#60a5fa' : '#38bdf8';
+
+        if (isMatch) {
+          circleFill = '#065f46';
+          circleStroke = '#10b981';
+        } else if (isHighlight) {
+          circleFill = '#78350f';
+          circleStroke = '#f59e0b';
+        }
+
+        const displayName = escapeHtml(node.displayName || node.username || '');
+        const shortName = displayName.length > 8 ? displayName.substring(0, 7) + '…' : displayName;
+
+        nodesHtml += `
+          <g class="tree-node ${isMatch ? 'match' : (isHighlight ? 'highlight' : '')}" 
+             data-user-id="${node.id}" 
+             onclick="selectNode(${node.id})">
+            <circle cx="${parentCoord.x}" cy="${parentCoord.y}" r="17" fill="${circleFill}" stroke="${circleStroke}" />
+            <text x="${parentCoord.x}" y="${parentCoord.y - 2.5}" fill="#ffffff" font-size="10px" font-weight="800">#${node.id}</text>
+            <text x="${parentCoord.x}" y="${parentCoord.y + 7.5}" fill="#94a3b8" font-size="7.5px" font-weight="600">${shortName}</text>
+            ${isRoot ? `<rect x="${parentCoord.x - 17}" y="${parentCoord.y - 29}" width="34" height="12" rx="6" fill="#6366f1"/><text x="${parentCoord.x}" y="${parentCoord.y - 22.5}" fill="#ffffff" font-size="7px" font-weight="700">ROOT</text>` : ''}
+          </g>
+        `;
+      }
+
+      renderBranches(data.root);
+
+      container.innerHTML = `
+        <svg class="tree-svg" viewBox="0 0 ${treeWidth} ${treeHeight}" preserveAspectRatio="xMidYMid meet">
+          <g class="edges-layer">${edgesHtml}</g>
+          <g class="nodes-layer">${nodesHtml}</g>
+        </svg>
+      `;
+    }
+
+    function selectNode(userId) {
+      document.getElementById('input-search-id').value = userId;
+      handleUserSearch();
+    }
+  </script>
+</body>
+</html>
+

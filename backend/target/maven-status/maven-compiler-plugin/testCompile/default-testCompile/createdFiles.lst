@@ -1,0 +1,15 @@
+com\taskflow\taskflow_backend\service\TaskDPServiceTest.class
+com\taskflow\taskflow_backend\service\UserTreeControllerTest.class
+com\taskflow\taskflow_backend\service\TaskControllerAuthTest.class
+com\taskflow\taskflow_backend\service\AuthServiceTest.class
+com\taskflow\taskflow_backend\service\TaskQueueServiceTest.class
+com\taskflow\taskflow_backend\service\ProjectGraphControllerTest.class
+com\taskflow\taskflow_backend\service\TaskStackServiceTest.class
+com\taskflow\taskflow_backend\service\UserBSTServiceTest.class
+com\taskflow\taskflow_backend\service\TaskBSTServiceTest.class
+com\taskflow\taskflow_backend\service\TaskSearchSortServiceTest.class
+com\taskflow\taskflow_backend\service\TaskGraphServiceTest.class
+com\taskflow\taskflow_backend\TaskflowBackendApplicationTests.class
+com\taskflow\taskflow_backend\service\TaskBacktrackingServiceTest.class
+com\taskflow\taskflow_backend\service\TaskGreedyServiceTest.class
+com\taskflow\taskflow_backend\service\TaskLinkedListServiceTest.class

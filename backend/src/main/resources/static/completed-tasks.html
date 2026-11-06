@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Completed Tasks (LIFO Stack) — TaskFlow</title>
+  <meta name="description" content="LIFO Audit Stack for Completed Tasks backed by custom Node pointers and durable MySQL persistence.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <script src="js/api.js?v=4.0"></script>
+  <script>
+    // Immediate pre-render access guard: Completed Tasks Stack is strictly Admin-only
+    const immediateUser = (window.API || API).getUser();
+    if (!immediateUser || !immediateUser.role || immediateUser.role.toUpperCase() !== 'ADMIN') {
+      window.location.replace('dashboard.html?error=forbidden');
+    }
+  </script>
+  <style>
+    .stack-node-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      background: #ffffff;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-md);
+      margin-bottom: 12px;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .stack-node-card:hover {
+      border-color: #10b981;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.08);
+      transform: translateY(-1px);
+    }
+    .stack-node-card.top-node {
+      border-left: 5px solid #10b981;
+      background: linear-gradient(90deg, #ecfdf5 0%, #ffffff 100%);
+    }
+    .position-pill {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .position-pill.top {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+    .position-pill.normal {
+      background: #f1f5f9;
+      color: var(--slate-600);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <div id="sidebar-container"></div>
+
+    <div class="app-main">
+      <div id="header-container"></div>
+
+      <main class="page-body">
+
+        <!-- Stack Hero Card -->
+        <div class="card" style="background: linear-gradient(135deg, #064e3b 0%, #0f172a 100%); color: #ffffff; margin-bottom: 24px; position: relative; overflow: hidden;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+            <div style="max-width: 680px; position: relative; z-index: 2;">
+              <span class="welcome-pill" style="background: rgba(16, 185, 129, 0.25); color: #a7f3d0;">Data Structure: LIFO Stack (Linked List &bull; MySQL Persisted)</span>
+              <h1 style="font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px;">
+                Completed Tasks Audit Stack
+              </h1>
+              <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.6; margin-bottom: 0;">
+                Deliverables that transition to <strong>Completed</strong> are pushed onto a <strong>Last-In First-Out (LIFO) Stack</strong> backed by explicit Java Node references (<code>top</code> and <code>next</code>) and synchronized with the MySQL <code>completed_task_stack</code> table. Popping entries archives them to the durable <code>popped_tasks_history</code> table without deleting the underlying task.
+              </p>
+            </div>
+            <img src="assets/banner-dashboard.svg" alt="LIFO Stack" style="width: 170px; height: auto; position: relative; z-index: 2; opacity: 0.9;">
+          </div>
+        </div>
+
+        <!-- Operations Control Bar -->
+        <div class="card" style="margin-bottom: 24px; padding: 18px 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <button id="btn-peek-top" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                Peek Top Task (O(1))
+              </button>
+              <button id="btn-pop-latest" class="btn btn-danger btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+                Pop Latest Stack Entry
+              </button>
+              <button id="btn-sync-stack" class="btn btn-secondary btn-sm" title="Reconcile stack with completed database records">
+                Sync Stack from DB
+              </button>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--slate-500);">
+              Stack Depth: <strong id="stack-depth-badge" style="color: var(--navy-900); font-size: 1rem;">0</strong> Completed Tasks
+            </div>
+          </div>
+
+          <!-- Explanation Callout: Pop Safety -->
+          <div style="margin-top: 14px; font-size: 0.8rem; color: var(--slate-600); background: #f8fafc; padding: 10px 14px; border-radius: 6px; border-left: 3px solid #10b981;">
+            <strong>Note on Stack Persistence:</strong> Popping removes the audit entry from the active LIFO stack and archives a durable event into <code>popped_tasks_history</code>. <em>It never deletes the task from MySQL tasks or reverts its Completed status.</em>
+          </div>
+
+          <!-- Live Peek Callout Banner -->
+          <div id="peek-callout" style="display: none; margin-top: 14px; padding: 12px 18px; border-radius: var(--radius-md); background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong>[TOP OF STACK / MOST RECENTLY COMPLETED]:</strong>
+                <span id="peek-task-desc" style="margin-left: 6px;">None</span>
+              </div>
+              <button id="btn-close-peek" style="background: none; border: none; font-size: 1.1rem; color: #065f46; cursor: pointer;">&times;</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ASCII Stack Box Diagram Card -->
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="card-header" style="margin-bottom: 10px;">
+            <div>
+              <h3 class="card-title" style="font-size: 1rem;">LIFO Stack Diagram</h3>
+              <p class="card-subtitle">Pointer sequence from Top (most recent) downwards</p>
+            </div>
+            <span class="complexity-tag">O(1) Push &bull; O(1) Pop &bull; O(1) Peek</span>
+          </div>
+          <div id="stack-visual-box" style="font-family: monospace; font-size: 0.82rem; background: #0f172a; color: #34d399; padding: 14px 18px; border-radius: var(--radius-md); overflow-x: auto; white-space: pre-wrap; line-height: 1.6;">
++---------------------------------+
+|        [STACK IS EMPTY]         |
++---------------------------------+
+          </div>
+        </div>
+
+        <!-- Stack Items List -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Completed Tasks Stack (Newest to Oldest)</h3>
+              <p class="card-subtitle">Active completed tasks held on the stack (persisted in <code>completed_task_stack</code>)</p>
+            </div>
+          </div>
+
+          <div id="stack-items-container" style="padding-top: 8px;">
+            <div style="text-align: center; padding: 40px; color: var(--slate-400);">Loading stack items...</div>
+          </div>
+        </div>
+
+        <!-- Popped Tasks Audit History (Durable MySQL Log) -->
+        <div class="card" style="margin-top: 24px;">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Popped Tasks Audit History</h3>
+              <p class="card-subtitle">Durable historical record of tasks popped from the LIFO stack into MySQL (<code>popped_tasks_history</code>)</p>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--slate-500);">
+              Total Popped History: <strong id="history-count-badge" style="color: var(--navy-900); font-size: 1rem;">0</strong> Records
+            </div>
+          </div>
+
+          <div class="table-responsive" style="padding-top: 8px;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Log #</th>
+                  <th>Task ID</th>
+                  <th>Task Name</th>
+                  <th>Completed Member</th>
+                  <th>Priority</th>
+                  <th>Original Stack Order</th>
+                  <th>Popped Timestamp</th>
+                  <th>Popped By</th>
+                </tr>
+              </thead>
+              <tbody id="history-items-container">
+                <tr><td colspan="8" style="text-align: center; padding: 24px; color: var(--slate-400);">Loading popped task history...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="js/navbar.js?v=4.0"></script>
+  <script>
+    let stackTasks = [];
+    let currentUser = null;
+    let isAdmin = false;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      let user = API.requireAuth();
+      if (!user) return;
+
+      try {
+        const fresh = await API.syncCurrentUser();
+        if (fresh) user = fresh;
+      } catch (e) {
+        console.warn('Session sync error:', e);
+      }
+
+      currentUser = user;
+      isAdmin = currentUser.role && currentUser.role.toUpperCase() === 'ADMIN';
+
+      if (!isAdmin) {
+        // Enforce page-level access protection: Members cannot access admin pages by entering URLs directly
+        window.location.replace('dashboard.html?error=forbidden');
+        return;
+      }
+
+      renderAppLayout('completed-tasks', 'Completed Tasks Audit Stack', currentUser);
+
+      await loadStack();
+      await loadHistory();
+
+      // Peek Top
+      document.getElementById('btn-peek-top').addEventListener('click', async () => {
+        try {
+          const res = await API.peekStack();
+          const callout = document.getElementById('peek-callout');
+          const desc = document.getElementById('peek-task-desc');
+          callout.style.display = 'block';
+
+          if (res.empty) {
+            desc.textContent = 'Stack is empty. No tasks currently on the stack.';
+          } else {
+            const t = res.task;
+            desc.innerHTML = `<strong>Task #${t.id}:</strong> "${escapeHtml(t.name)}" (Completed by: <strong>${escapeHtml(t.member)}</strong>, Priority: <strong>${escapeHtml(t.priority)}</strong>)`;
+          }
+          API.showToast(res.message, 'info');
+        } catch (err) {
+          API.showToast(err.message, 'error');
+        }
+      });
+
+      document.getElementById('btn-close-peek').addEventListener('click', () => {
+        document.getElementById('peek-callout').style.display = 'none';
+      });
+
+      // Pop Latest with Double-Click & Debounce Lockout
+      let isPopInProgress = false;
+      document.getElementById('btn-pop-latest').addEventListener('click', async () => {
+        if (!isAdmin) {
+          API.showToast('Access restricted: Only Administrators can pop entries from the audit stack.', 'warning');
+          return;
+        }
+
+        if (isPopInProgress) return;
+        isPopInProgress = true;
+        const popBtn = document.getElementById('btn-pop-latest');
+        popBtn.disabled = true;
+        const originalHtml = popBtn.innerHTML;
+        popBtn.innerHTML = `
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation: spin 0.8s linear infinite;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          Popping...
+        `;
+
+        try {
+          const popped = await API.popStack();
+          API.showToast(`Popped Task #${popped.id} from Stack! Archived to durable MySQL history.`, 'info');
+          document.getElementById('peek-callout').style.display = 'none';
+          await loadStack();
+          await loadHistory();
+        } catch (err) {
+          API.showToast(err.message || 'Stack is empty or pop failed.', 'error');
+        } finally {
+          popBtn.innerHTML = originalHtml;
+          popBtn.disabled = false;
+          isPopInProgress = false;
+        }
+      });
+
+      // Sync Stack
+      document.getElementById('btn-sync-stack').addEventListener('click', async () => {
+        try {
+          await API.syncStack();
+          await loadStack();
+          await loadHistory();
+          API.showToast('Stack synchronized with completed MySQL tasks', 'success');
+        } catch (err) {
+          API.showToast(err.message, 'error');
+        }
+      });
+    });
+
+    async function loadStack() {
+      try {
+        stackTasks = await API.getStack();
+        const peekRes = await API.peekStack();
+
+        document.getElementById('stack-depth-badge').textContent = stackTasks.length;
+        document.getElementById('stack-visual-box').textContent = peekRes.visual || '+---------------------------------+\n|        [STACK IS EMPTY]         |\n+---------------------------------+';
+
+        renderStackList(stackTasks);
+      } catch (err) {
+        console.error('Failed to load stack:', err);
+        document.getElementById('stack-items-container').innerHTML = `
+          <div style="padding: 24px; text-align: center; color: #ef4444;">
+            Failed to query stack: ${escapeHtml(err.message)}
+          </div>
+        `;
+      }
+    }
+
+    async function loadHistory() {
+      try {
+        const history = await API.getPoppedHistory();
+        document.getElementById('history-count-badge').textContent = (history && history.length) || 0;
+        renderHistoryList(history);
+      } catch (err) {
+        console.error('Failed to load history:', err);
+        document.getElementById('history-items-container').innerHTML = `
+          <tr><td colspan="8" style="text-align: center; padding: 20px; color: #ef4444;">Failed to load history: ${escapeHtml(err.message)}</td></tr>
+        `;
+      }
+    }
+
+    function renderStackList(tasks) {
+      const container = document.getElementById('stack-items-container');
+      if (!tasks || tasks.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 48px 24px;">
+            <div style="width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 50%; background: #ecfdf5; display: flex; align-items: center; justify-content: center; color: #10b981;">
+              <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>
+            </div>
+            <h4 style="font-size: 1.1rem; font-weight: 700; color: var(--navy-900); margin-bottom: 6px;">Completed Tasks Stack is Empty</h4>
+            <p style="font-size: 0.85rem; color: var(--slate-500); max-width: 440px; margin: 0 auto;">
+              No completed tasks currently exist on the active stack. When tasks are marked Completed, their completion entry is pushed to the top of this stack.
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = tasks.map((task, idx) => {
+        const isTop = (idx === 0);
+        const positionLabel = isTop ? '[STACK TOP / NEWEST]' : `Depth: ${idx + 1}`;
+
+        return `
+          <div class="stack-node-card ${isTop ? 'top-node' : ''}">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <span class="position-pill ${isTop ? 'top' : 'normal'}">${positionLabel}</span>
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <strong style="color: var(--navy-900); font-size: 0.95rem;">Task #${task.id}: ${escapeHtml(task.name)}</strong>
+                  <span class="priority-badge ${getPriorityClass(task.priority)}">${task.priority}</span>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--slate-500); margin-top: 4px;">
+                  Completed by: <strong style="color: var(--slate-700);">${escapeHtml(task.member)}</strong> &bull;
+                  Status: <span class="status-badge completed">Completed</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 0.75rem; color: #059669; background: #ecfdf5; padding: 4px 8px; border-radius: 4px; font-weight: 600;">
+                ✓ Active in MySQL Stack
+              </span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderHistoryList(history) {
+      const container = document.getElementById('history-items-container');
+      if (!history || history.length === 0) {
+        container.innerHTML = `
+          <tr>
+            <td colspan="8" style="text-align: center; padding: 32px 16px; color: var(--slate-400);">
+              No tasks have been popped yet. When tasks are popped from the completed stack above, durable audit records will appear here.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      container.innerHTML = history.map(item => `
+        <tr>
+          <td><code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-weight: 600;">#${item.id}</code></td>
+          <td><strong>Task #${item.taskId}</strong></td>
+          <td>${escapeHtml(item.taskName)}</td>
+          <td>${escapeHtml(item.member)}</td>
+          <td><span class="priority-badge ${getPriorityClass(item.priority)}">${item.priority}</span></td>
+          <td>Order #${item.originalStackOrder || '-'}</td>
+          <td><span style="font-size: 0.8rem; color: var(--slate-600);">${formatDateTime(item.poppedAt)}</span></td>
+          <td><strong style="color: var(--navy-900);">${escapeHtml(item.poppedBy || 'Administrator')}</strong></td>
+        </tr>
+      `).join('');
+    }
+
+    function formatDateTime(iso) {
+      if (!iso) return '-';
+      try {
+        const d = new Date(iso);
+        return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      } catch (e) {
+        return iso;
+      }
+    }
+
+    function getPriorityClass(p) {
+      if (!p) return 'medium';
+      const pl = p.toLowerCase();
+      if (pl.startsWith('h')) return 'high';
+      if (pl.startsWith('l')) return 'low';
+      return 'medium';
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+  </script>
+</body>
+</html>

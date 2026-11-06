@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.taskflow.taskflow_backend.service.TaskGreedyServiceTest
+-------------------------------------------------------------------------------
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.028 s -- in com.taskflow.taskflow_backend.service.TaskGreedyServiceTest

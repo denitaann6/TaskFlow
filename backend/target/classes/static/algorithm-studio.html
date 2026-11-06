@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Algorithm Studio – Greedy, Dynamic Programming &amp; Backtracking — TaskFlow</title>
+  <meta name="description" content="Phase 4 Algorithm Studio: Priority Selection Board (Greedy), 0/1 Knapsack Allocation (Dynamic Programming), and Dependency Planning (Backtracking) on real TaskFlow task records.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <script src="js/api.js?v=4.7"></script>
+  <script>
+    // Immediate pre-render access guard: Algorithm Studio is strictly Admin-only
+    const immediateUser = (window.API || API).getUser();
+    if (!immediateUser || !immediateUser.role || immediateUser.role.toUpperCase() !== 'ADMIN') {
+      window.location.replace('dashboard.html?error=forbidden');
+    }
+  </script>
+  <style>
+    .studio-panel {
+      background: var(--slate-50);
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-md);
+      padding: 18px 22px;
+      margin-bottom: 20px;
+    }
+    .task-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+      margin-top: 14px;
+    }
+    .task-selection-card {
+      background: #ffffff;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      transition: all 0.2s ease;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .task-selection-card.accepted {
+      border-color: #10b981;
+      background: #f0fdf4;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+    }
+    .task-selection-card.skipped {
+      border-color: #e2e8f0;
+      background: #f8fafc;
+      opacity: 0.7;
+    }
+    .task-selection-card.dp-optimal {
+      border-color: #3b82f6;
+      background: #eff6ff;
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+    }
+    .ratio-badge {
+      font-family: var(--font-mono);
+      font-weight: 800;
+      background: #fef08a;
+      color: #854d0e;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      display: inline-block;
+    }
+    .code-console {
+      background: #0f172a;
+      color: #38bdf8;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      padding: 14px 18px;
+      border-radius: var(--radius-md);
+      border: 1px solid #1e293b;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 240px;
+      overflow-y: auto;
+      line-height: 1.5;
+    }
+    .metric-pill {
+      background: #ffffff;
+      border: 1px solid var(--slate-200);
+      border-radius: 8px;
+      padding: 8px 14px;
+      display: inline-flex;
+      flex-direction: column;
+      min-width: 100px;
+    }
+    .metric-pill-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--slate-500);
+      letter-spacing: 0.04em;
+    }
+    .metric-pill-value {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--navy-900);
+      margin-top: 2px;
+    }
+    .schedule-card {
+      background: #ffffff;
+      border: 1px solid var(--slate-200);
+      border-left: 4px solid #8b5cf6;
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .sequence-tag {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      background: #f3e8ff;
+      color: #6b21a8;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <div id="sidebar-container"></div>
+
+    <div class="app-main">
+      <div id="header-container"></div>
+
+      <main class="page-body">
+
+        <!-- Hero Explanation Banner -->
+        <div class="card" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; margin-bottom: 24px; position: relative; overflow: hidden;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+            <div style="max-width: 720px; position: relative; z-index: 2;">
+              <span class="welcome-pill" style="background: rgba(139, 92, 246, 0.25); color: #ddd6fe;">Phase 4: Advanced Problem-Solving Strategies</span>
+              <h1 style="font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px;">
+                Algorithm Studio
+              </h1>
+              <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.6;">
+                Interactive execution testbed comparing three distinct algorithmic paradigms: <strong>Greedy Heuristic Selection</strong>, <strong>Dynamic Programming 0/1 Knapsack Optimization</strong>, and <strong>Backtracking Dependency Planning</strong> on real TaskFlow task records.
+              </p>
+            </div>
+            <div style="display: flex; gap: 14px; flex-wrap: wrap; position: relative; z-index: 2;">
+              <div style="background: rgba(255, 255, 255, 0.08); padding: 14px 18px; border-radius: var(--radius-md); text-align: center; border: 1px solid rgba(255,255,255,0.12);">
+                <div style="font-size: 0.72rem; text-transform: uppercase; color: #94a3b8; font-weight: 700;">Live Tasks</div>
+                <div id="stat-total-tasks" style="font-size: 1.5rem; font-weight: 800; color: #38bdf8;">--</div>
+              </div>
+              <div style="background: rgba(255, 255, 255, 0.08); padding: 14px 18px; border-radius: var(--radius-md); text-align: center; border: 1px solid rgba(255,255,255,0.12);">
+                <div style="font-size: 0.72rem; text-transform: uppercase; color: #94a3b8; font-weight: 700;">Paradigm</div>
+                <div style="font-size: 1.5rem; font-weight: 800; color: #c084fc;">3 Solvers</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- SECTION 1: GREEDY ALGORITHM (Priority Selection Board)       -->
+        <!-- ============================================================ -->
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="card-header" style="border-bottom: 1px solid var(--slate-200); padding-bottom: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <span class="badge" style="background: #e0f2fe; color: #0284c7; font-weight: 700; font-size: 0.75rem;">SECTION ONE</span>
+                <h2 class="card-title" style="margin-top: 4px; font-size: 1.25rem;">Greedy Algorithm: Priority Selection Board</h2>
+                <p class="card-subtitle">Makes the best immediate choice at each step by selecting tasks with the highest Benefit-to-Time Density Ratio</p>
+              </div>
+              <div class="badge" style="background: #f1f5f9; color: var(--navy-900); font-weight: 700;">
+                Locally Optimal Heuristic (O(N log N))
+              </div>
+            </div>
+          </div>
+
+          <!-- Greedy Controls Panel -->
+          <div class="studio-panel">
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end;">
+              <div style="min-width: 200px;">
+                <label for="greedy-time-limit" style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--slate-600); margin-bottom: 6px; text-transform: uppercase;">
+                  Available Time Budget (Hours)
+                </label>
+                <div style="display: flex; gap: 8px;">
+                  <input type="number" id="greedy-time-limit" class="form-input" value="8" min="1" max="40" style="width: 100px;">
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="setGreedyLimit(4)">4h</button>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="setGreedyLimit(8)">8h</button>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="setGreedyLimit(12)">12h</button>
+                </div>
+              </div>
+
+              <div>
+                <button type="button" id="btn-run-greedy" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px;">
+                  <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                  </svg>
+                  <span>Run Greedy Selection</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Formula Banner -->
+            <div style="margin-top: 14px; padding: 10px 14px; background: #ffffff; border: 1px solid var(--slate-200); border-radius: 6px; font-size: 0.85rem; color: var(--slate-700);">
+              <strong style="color: var(--navy-900);">Greedy Metric:</strong>
+              Tasks are ranked by density ratio: 
+              <span class="ratio-badge">Density Ratio = Task Benefit / Estimated Duration</span>.
+              The algorithm greedily commits to the highest-density available task that fits within the remaining time budget.
+            </div>
+          </div>
+
+          <!-- Greedy Live Results Bar -->
+          <div id="greedy-results-metrics" style="display: none; margin-bottom: 16px;">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+              <div class="metric-pill">
+                <span class="metric-pill-label">Time Budget</span>
+                <span id="metric-greedy-budget" class="metric-pill-value">8h</span>
+              </div>
+              <div class="metric-pill">
+                <span class="metric-pill-label">Allocated Time</span>
+                <span id="metric-greedy-allocated" class="metric-pill-value">0h</span>
+              </div>
+              <div class="metric-pill">
+                <span class="metric-pill-label">Remaining Time</span>
+                <span id="metric-greedy-remaining" class="metric-pill-value">0h</span>
+              </div>
+              <div class="metric-pill">
+                <span class="metric-pill-label">Total Score Achieved</span>
+                <span id="metric-greedy-score" class="metric-pill-value" style="color: #10b981;">0 pts</span>
+              </div>
+              <div class="metric-pill">
+                <span class="metric-pill-label">Tasks Accepted</span>
+                <span id="metric-greedy-accepted-count" class="metric-pill-value" style="color: #0284c7;">0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Priority Selection Board: Task Cards Grid -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <strong style="font-size: 0.85rem; text-transform: uppercase; color: var(--navy-900);">Priority Selection Board (Candidate Tasks)</strong>
+              <span id="greedy-card-count" style="font-size: 0.75rem; color: var(--slate-500);">0 candidate tasks</span>
+            </div>
+            <div class="task-card-grid" id="greedy-board-grid">
+              <div style="grid-column: 1 / -1; text-align: center; color: var(--slate-500); padding: 20px;">Loading candidate tasks...</div>
+            </div>
+          </div>
+
+          <!-- Decision Trace Console -->
+          <div style="margin-top: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 0.8rem; font-weight: 700; color: var(--navy-900); text-transform: uppercase;">
+                Greedy Step-by-Step Decision Trace
+              </span>
+              <span id="greedy-trace-count" style="font-size: 0.75rem; color: var(--slate-500);">0 steps</span>
+            </div>
+            <div id="console-greedy-trace" class="code-console">Click "Run Greedy Selection" to simulate step-by-step choices.</div>
+          </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- SECTION 2: DYNAMIC PROGRAMMING (0/1 Knapsack Allocation)    -->
+        <!-- ============================================================ -->
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="card-header" style="border-bottom: 1px solid var(--slate-200); padding-bottom: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <span class="badge" style="background: #fef3c7; color: #b45309; font-weight: 700; font-size: 0.75rem;">SECTION TWO</span>
+                <h2 class="card-title" style="margin-top: 4px; font-size: 1.25rem;">Dynamic Programming: 0/1 Knapsack Optimal Allocation</h2>
+                <p class="card-subtitle">Constructs a 2D state table (DP[i][w]) to guarantee the mathematically optimal task subset within available hours</p>
+              </div>
+              <div class="badge" style="background: #f1f5f9; color: var(--navy-900); font-weight: 700;">
+                Globally Optimal Tabulation (O(N &times; W))
+              </div>
+            </div>
+          </div>
+
+          <!-- DP Controls Panel -->
+          <div class="studio-panel">
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end;">
+              <div style="min-width: 200px;">
+                <label for="dp-time-limit" style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--slate-600); margin-bottom: 6px; text-transform: uppercase;">
+                  Total Time Capacity (Hours)
+                </label>
+                <div style="display: flex; gap: 8px;">
+                  <input type="number" id="dp-time-limit" class="form-input" value="8" min="1" max="40" style="width: 100px;">
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="setDPLimit(6)">6h</button>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="setDPLimit(8)">8h</button>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="setDPLimit(10)">10h</button>
+                </div>
+              </div>
+
+              <div>
+                <button type="button" id="btn-run-dp" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px;">
+                  <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                  </svg>
+                  <span>Run DP Knapsack</span>
+                </button>
+              </div>
+            </div>
+
+            <div style="margin-top: 14px; padding: 10px 14px; background: #ffffff; border: 1px solid var(--slate-200); border-radius: 6px; font-size: 0.85rem; color: var(--slate-700);">
+              <strong style="color: var(--navy-900);">Recurrence Relation:</strong>
+              <code style="font-family: var(--font-mono); color: #2563eb;">DP[i][w] = max(DP[i-1][w], DP[i-1][w - duration[i]] + benefit[i])</code>.
+              Unlike the Greedy heuristic which can miss the global optimum in non-fractional knapsack problems, DP guarantees finding the optimal subset through bottom-up subproblem memoization.
+            </div>
+          </div>
+
+          <!-- DP Live Results Bar -->
+          <div id="dp-results-metrics" style="display: none; margin-bottom: 16px;">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+              <div class="metric-pill">
+                <span class="metric-pill-label">Time Capacity</span>
+                <span id="metric-dp-limit" class="metric-pill-value">8h</span>
+              </div>
+              <div class="metric-pill">
+                <span class="metric-pill-label">Duration Used</span>
+                <span id="metric-dp-used" class="metric-pill-value">0h</span>
+              </div>
+              <div class="metric-pill">
+                <span class="metric-pill-label">Max Benefit Achieved</span>
+                <span id="metric-dp-benefit" class="metric-pill-value" style="color: #2563eb;">0 pts</span>
+              </div>
+              <div class="metric-pill">
+                <span class="metric-pill-label">Optimal Tasks Count</span>
+                <span id="metric-dp-tasks-count" class="metric-pill-value" style="color: #10b981;">0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Optimal Tasks Display -->
+          <div>
+            <strong style="font-size: 0.85rem; text-transform: uppercase; color: var(--navy-900);">Globally Optimal Task Set (DP Solution)</strong>
+            <div class="task-card-grid" id="dp-optimal-grid">
+              <div style="grid-column: 1 / -1; text-align: center; color: var(--slate-500); padding: 16px;">Click "Run DP Knapsack" to solve.</div>
+            </div>
+          </div>
+
+          <!-- DP Steps Console -->
+          <div style="margin-top: 20px;">
+            <span style="font-size: 0.8rem; font-weight: 700; color: var(--navy-900); text-transform: uppercase;">
+              DP Tabulation &amp; Backtrack Reconstruction Trace
+            </span>
+            <div id="console-dp-trace" class="code-console" style="margin-top: 6px;">Click "Run DP Knapsack" to inspect state transitions.</div>
+          </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- SECTION 3: BACKTRACKING (Dependency Constraint Planner)      -->
+        <!-- ============================================================ -->
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="card-header" style="border-bottom: 1px solid var(--slate-200); padding-bottom: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <span class="badge" style="background: #f3e8ff; color: #7e22ce; font-weight: 700; font-size: 0.75rem;">SECTION THREE</span>
+                <h2 class="card-title" style="margin-top: 4px; font-size: 1.25rem;">Backtracking: Dependency Constraint Planner</h2>
+                <p class="card-subtitle">Explores execution schedules level-by-level, verifying prerequisites and pruning invalid branches</p>
+              </div>
+              <div class="badge" style="background: #f1f5f9; color: var(--navy-900); font-weight: 700;">
+                State Space Tree Search with Pruning
+              </div>
+            </div>
+          </div>
+
+          <!-- Backtracking Controls Panel -->
+          <div class="studio-panel">
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end;">
+              <div style="min-width: 200px;">
+                <label for="backtrack-limit" style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--slate-600); margin-bottom: 6px; text-transform: uppercase;">
+                  Max Schedules to Find
+                </label>
+                <div style="display: flex; gap: 8px;">
+                  <input type="number" id="backtrack-limit" class="form-input" value="10" min="1" max="50" style="width: 100px;">
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="setBacktrackLimit(5)">5</button>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="setBacktrackLimit(10)">10</button>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="setBacktrackLimit(20)">20</button>
+                </div>
+              </div>
+
+              <div>
+                <button type="button" id="btn-run-backtracking" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px;">
+                  <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                  </svg>
+                  <span>Generate Valid Schedules</span>
+                </button>
+              </div>
+            </div>
+
+            <div style="margin-top: 14px; padding: 10px 14px; background: #ffffff; border: 1px solid var(--slate-200); border-radius: 6px; font-size: 0.85rem; color: var(--slate-700);">
+              <strong style="color: var(--navy-900);">Pruning Rule:</strong>
+              A directed edge $(A \to B)$ means Task A must finish before Task B begins ($index(A) < index(B)$). When the recursive search places candidates in sequence, if a candidate has unmet prerequisites, that branch is immediately pruned, eliminating fruitless permutation sub-trees.
+            </div>
+          </div>
+
+          <!-- Backtracking Live Results Bar -->
+          <div id="backtracking-results-metrics" style="display: none; margin-bottom: 16px;">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+              <div class="metric-pill">
+                <span class="metric-pill-label">Total Tasks</span>
+                <span id="metric-backtrack-total" class="metric-pill-value">--</span>
+              </div>
+              <div class="metric-pill">
+                <span class="metric-pill-label">Schedules Found</span>
+                <span id="metric-backtrack-schedules" class="metric-pill-value" style="color: #7e22ce;">0</span>
+              </div>
+              <div class="metric-pill">
+                <span class="metric-pill-label">Branches Pruned</span>
+                <span id="metric-backtrack-pruned" class="metric-pill-value" style="color: #b91c1c;">0</span>
+              </div>
+              <div class="metric-pill" style="flex: 1;">
+                <span class="metric-pill-label">Cycle Detection Status</span>
+                <span id="metric-backtrack-cycle" class="metric-pill-value" style="font-size: 0.95rem; color: #15803d;">Acyclic DAG</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Generated Schedules Container -->
+          <div>
+            <strong style="font-size: 0.85rem; text-transform: uppercase; color: var(--navy-900);">Valid Execution Schedules (Topological Orders)</strong>
+            <div id="backtracking-schedules-list" style="margin-top: 12px;">
+              <div style="text-align: center; color: var(--slate-500); padding: 16px;">Click "Generate Valid Schedules" to explore state space.</div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="js/navbar.js?v=4.7"></script>
+  <script>
+    let allLiveTasks = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      let user = (window.API || API).requireAuth();
+      if (!user) return;
+
+      // Verify server session
+      try {
+        const fresh = await API.getCurrentUser();
+        if (fresh) user = fresh;
+      } catch (e) {
+        console.warn('Session sync warning:', e);
+      }
+
+      if (!user.role || user.role.toUpperCase() !== 'ADMIN') {
+        window.location.replace('dashboard.html?error=forbidden');
+        return;
+      }
+
+      renderAppLayout('algorithm-studio', 'Algorithm Studio – Greedy, DP & Backtracking', user);
+
+      // Load initial tasks & setup controls
+      await initStudio();
+    });
+
+    async function initStudio() {
+      try {
+        allLiveTasks = await API.getTasks();
+        if (!Array.isArray(allLiveTasks)) allLiveTasks = [];
+        document.getElementById('stat-total-tasks').textContent = allLiveTasks.length;
+
+        // Auto-load initial Greedy candidate view
+        await runGreedy();
+      } catch (err) {
+        console.error('Failed to initialize Algorithm Studio:', err);
+        API.showToast('Could not load task records from backend', 'error');
+      }
+
+      // Event listeners
+      document.getElementById('btn-run-greedy').addEventListener('click', runGreedy);
+      document.getElementById('btn-run-dp').addEventListener('click', runDP);
+      document.getElementById('btn-run-backtracking').addEventListener('click', runBacktracking);
+    }
+
+    // Helper Presets
+    function setGreedyLimit(val) {
+      document.getElementById('greedy-time-limit').value = val;
+      runGreedy();
+    }
+    function setDPLimit(val) {
+      document.getElementById('dp-time-limit').value = val;
+      runDP();
+    }
+    function setBacktrackLimit(val) {
+      document.getElementById('backtrack-limit').value = val;
+      runBacktracking();
+    }
+
+    // ==========================================
+    // 1. GREEDY ALGORITHM
+    // ==========================================
+    async function runGreedy() {
+      const limitInput = document.getElementById('greedy-time-limit');
+      const limit = parseInt(limitInput.value) || 8;
+
+      try {
+        const res = await API.getGreedy(limit);
+        renderGreedyResults(res);
+      } catch (err) {
+        console.error('Greedy execution error:', err);
+        API.showToast('Greedy selection failed: ' + err.message, 'error');
+      }
+    }
+
+    function renderGreedyResults(res) {
+      document.getElementById('greedy-results-metrics').style.display = 'block';
+      document.getElementById('metric-greedy-budget').textContent = (res.timeLimitHours || 0) + 'h';
+      document.getElementById('metric-greedy-allocated').textContent = (res.totalAllocatedHours || 0) + 'h';
+      document.getElementById('metric-greedy-remaining').textContent = (res.remainingHours || 0) + 'h';
+      document.getElementById('metric-greedy-score').textContent = (res.totalPriorityScore || 0) + ' pts';
+
+      const selectedIds = new Set((res.selectedTasks || []).map(t => t.taskId));
+      document.getElementById('metric-greedy-accepted-count').textContent = selectedIds.size;
+
+      const candidates = res.candidateTasks || [];
+      document.getElementById('greedy-card-count').textContent = `${candidates.length} tasks evaluated`;
+
+      const grid = document.getElementById('greedy-board-grid');
+      if (candidates.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--slate-500); padding: 20px;">No pending candidate tasks available.</div>';
+        return;
+      }
+
+      grid.innerHTML = candidates.map(t => {
+        const isAccepted = selectedIds.has(t.taskId);
+        const duration = t.estimatedDuration !== undefined ? t.estimatedDuration : t.sampleEffortHours;
+        const benefit = t.benefit !== undefined ? t.benefit : t.priorityWeight;
+        const ratio = (t.benefitToTimeRatio !== undefined ? t.benefitToTimeRatio : t.densityRatio) || 0;
+
+        return `
+          <div class="task-selection-card ${isAccepted ? 'accepted' : 'skipped'}">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                <span style="font-family: var(--font-mono); font-weight: 800; color: var(--navy-900); font-size: 0.95rem;">#${t.taskId}</span>
+                <span class="status-pill priority-${(t.priority || 'medium').toLowerCase()}">${escapeHtml(t.priority || 'Medium')}</span>
+              </div>
+              <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--navy-900); margin-bottom: 4px;">${escapeHtml(t.taskName)}</h4>
+              <p style="font-size: 0.8rem; color: var(--slate-500); margin-bottom: 12px;">Assignee: <strong>${escapeHtml(t.member || 'Unassigned')}</strong></p>
+            </div>
+
+            <div>
+              <div style="background: var(--slate-100); border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; font-size: 0.78rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                  <span style="color: var(--slate-600);">Estimated Duration:</span>
+                  <strong style="color: var(--navy-900);">${duration}h</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                  <span style="color: var(--slate-600);">Benefit Value:</span>
+                  <strong style="color: var(--navy-900);">${benefit} pts</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--slate-300);">
+                  <span style="color: var(--slate-600); font-weight: 600;">Density Ratio:</span>
+                  <span class="ratio-badge">${ratio.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div style="text-align: right;">
+                ${isAccepted ?
+                  '<span style="background: #10b981; color: #ffffff; padding: 4px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 800;">ACCEPTED</span>' :
+                  '<span style="background: var(--slate-200); color: var(--slate-600); padding: 4px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600;">SKIPPED (EXCEEDS REMAINING)</span>'
+                }
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const trace = res.decisionTrace || [];
+      document.getElementById('greedy-trace-count').textContent = `${trace.length} decisions`;
+      document.getElementById('console-greedy-trace').textContent = trace.join('\n') || 'No trace available.';
+    }
+
+    // ==========================================
+    // 2. DYNAMIC PROGRAMMING (0/1 Knapsack)
+    // ==========================================
+    async function runDP() {
+      const limitInput = document.getElementById('dp-time-limit');
+      const limit = parseInt(limitInput.value) || 8;
+
+      try {
+        const res = await API.getDP(limit);
+        renderDPResults(res);
+      } catch (err) {
+        console.error('DP execution error:', err);
+        API.showToast('DP Knapsack failed: ' + err.message, 'error');
+      }
+    }
+
+    function renderDPResults(res) {
+      document.getElementById('dp-results-metrics').style.display = 'block';
+      document.getElementById('metric-dp-limit').textContent = (res.timeLimitHours || 0) + 'h';
+      document.getElementById('metric-dp-used').textContent = (res.totalDurationUsed || 0) + 'h';
+      document.getElementById('metric-dp-benefit').textContent = (res.maxBenefitAchieved || 0) + ' pts';
+
+      const selected = res.selectedTasks || [];
+      document.getElementById('metric-dp-tasks-count').textContent = selected.length;
+
+      const grid = document.getElementById('dp-optimal-grid');
+      if (selected.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--slate-500); padding: 16px;">No tasks could be allocated within the time limit.</div>';
+      } else {
+        grid.innerHTML = selected.map(t => {
+          const duration = t.estimatedDuration !== undefined ? t.estimatedDuration : t.sampleDurationHours;
+          const benefit = t.benefit !== undefined ? t.benefit : t.sampleBenefitValue;
+
+          return `
+            <div class="task-selection-card dp-optimal">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                  <span style="font-family: var(--font-mono); font-weight: 800; color: #1d4ed8; font-size: 0.95rem;">#${t.taskId}</span>
+                  <span class="status-pill priority-${(t.priority || 'medium').toLowerCase()}">${escapeHtml(t.priority || 'Medium')}</span>
+                </div>
+                <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--navy-900); margin-bottom: 4px;">${escapeHtml(t.taskName)}</h4>
+                <p style="font-size: 0.8rem; color: var(--slate-500); margin-bottom: 8px;">Assignee: <strong>${escapeHtml(t.member || 'Unassigned')}</strong></p>
+              </div>
+
+              <div>
+                <div style="background: rgba(59, 130, 246, 0.08); border-radius: 6px; padding: 6px 10px; margin-bottom: 8px; font-size: 0.8rem;">
+                  <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--slate-600);">Duration:</span>
+                    <strong style="color: var(--navy-900);">${duration}h</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; margin-top: 2px;">
+                    <span style="color: var(--slate-600);">Benefit:</span>
+                    <strong style="color: #2563eb;">+${benefit} pts</strong>
+                  </div>
+                </div>
+                <div style="text-align: right;">
+                  <span style="background: #2563eb; color: #ffffff; padding: 3px 8px; border-radius: 9999px; font-size: 0.72rem; font-weight: 700;">OPTIMAL SUBSET</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const steps = res.dpSteps || [];
+      document.getElementById('console-dp-trace').textContent = steps.join('\n') || 'No DP steps recorded.';
+    }
+
+    // ==========================================
+    // 3. BACKTRACKING
+    // ==========================================
+    async function runBacktracking() {
+      const limitInput = document.getElementById('backtrack-limit');
+      const limit = parseInt(limitInput.value) || 10;
+
+      try {
+        const res = await API.getBacktracking(limit);
+        renderBacktrackingResults(res);
+      } catch (err) {
+        console.error('Backtracking execution error:', err);
+        API.showToast('Backtracking failed: ' + err.message, 'error');
+      }
+    }
+
+    function renderBacktrackingResults(res) {
+      document.getElementById('backtracking-results-metrics').style.display = 'block';
+      document.getElementById('metric-backtrack-total').textContent = res.totalTasks || 0;
+      document.getElementById('metric-backtrack-schedules').textContent = res.schedulesFound || 0;
+      document.getElementById('metric-backtrack-pruned').textContent = res.branchesPruned || 0;
+
+      const cycleElem = document.getElementById('metric-backtrack-cycle');
+      if (res.cycleDetected) {
+        cycleElem.textContent = 'CYCLE DETECTED';
+        cycleElem.style.color = '#dc2626';
+      } else {
+        cycleElem.textContent = 'Acyclic DAG (Valid)';
+        cycleElem.style.color = '#15803d';
+      }
+
+      const container = document.getElementById('backtracking-schedules-list');
+      const schedules = res.validOrderings || [];
+
+      if (res.cycleDetected) {
+        container.innerHTML = `
+          <div style="padding: 14px 18px; background: #fee2e2; border-left: 4px solid #ef4444; border-radius: 6px; color: #b91c1c; font-size: 0.88rem;">
+            <strong>Circular Dependency Deadlock:</strong> ${escapeHtml(res.cycleMessage || 'Cannot construct topological ordering.')}
+          </div>
+        `;
+        return;
+      }
+
+      if (schedules.length === 0) {
+        container.innerHTML = `<div style="text-align: center; color: var(--slate-500); padding: 16px;">${escapeHtml(res.cycleMessage || 'No valid schedules found.')}</div>`;
+        return;
+      }
+
+      const names = res.taskNames || {};
+
+      container.innerHTML = schedules.map((order, idx) => {
+        const seqHtml = order.map(id => {
+          const taskName = names[id] || ('Task #' + id);
+          return `<span class="sequence-tag" title="${escapeHtml(taskName)}">#${id}</span>`;
+        }).join('<span style="color: var(--slate-400); font-weight: bold; margin: 0 4px;">&rarr;</span>');
+
+        return `
+          <div class="schedule-card">
+            <div>
+              <strong style="font-size: 0.85rem; color: #6b21a8;">Valid Topological Schedule #${idx + 1}</strong>
+              <div style="margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px;">
+                ${seqHtml}
+              </div>
+            </div>
+            <div>
+              <span class="badge" style="background: #f3e8ff; color: #7e22ce; font-weight: 700;">Prerequisites Satisfied</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>
+

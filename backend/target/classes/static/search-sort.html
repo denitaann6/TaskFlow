@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search &amp; Sort Lab — TaskFlow</title>
+  <meta name="description" content="Phase 3 Searching and Sorting Data Structures & Algorithms Lab: Linear Search, Binary Search, Insertion Sort, and Quick Sort on real TaskFlow task records.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <script src="js/api.js?v=4.6"></script>
+  <script>
+    // Immediate pre-render access guard: requires authenticated session
+    const immediateUser = (window.API || API).getUser();
+    if (!immediateUser) {
+      window.location.replace('index.html');
+    }
+  </script>
+  <style>
+    .algorithm-control-panel {
+      background: var(--slate-50);
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      margin-bottom: 20px;
+    }
+    .toggle-group {
+      display: inline-flex;
+      background: var(--slate-200);
+      padding: 4px;
+      border-radius: 8px;
+      gap: 4px;
+    }
+    .toggle-btn {
+      border: none;
+      background: transparent;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--slate-600);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .toggle-btn.active {
+      background: #ffffff;
+      color: var(--navy-900);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .code-console {
+      background: #0f172a;
+      color: #38bdf8;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      padding: 14px 18px;
+      border-radius: var(--radius-md);
+      border: 1px solid #1e293b;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 240px;
+      overflow-y: auto;
+      line-height: 1.5;
+    }
+    .result-badge-found {
+      background: #dcfce7;
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-weight: 700;
+      font-size: 0.8rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .result-badge-notfound {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-weight: 700;
+      font-size: 0.8rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .metric-pill {
+      background: #ffffff;
+      border: 1px solid var(--slate-200);
+      border-radius: 8px;
+      padding: 8px 14px;
+      display: inline-flex;
+      flex-direction: column;
+      min-width: 100px;
+    }
+    .metric-pill-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--slate-500);
+      letter-spacing: 0.04em;
+    }
+    .metric-pill-value {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--navy-900);
+      margin-top: 2px;
+    }
+    .complexity-table th {
+      background: #f1f5f9;
+      color: var(--navy-900);
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .complexity-table td {
+      font-size: 0.85rem;
+      vertical-align: middle;
+    }
+    .complexity-badge {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      display: inline-block;
+    }
+    .complexity-green { background: #dcfce7; color: #166534; }
+    .complexity-blue { background: #e0f2fe; color: #0369a1; }
+    .complexity-amber { background: #fef3c7; color: #92400e; }
+    .complexity-red { background: #fee2e2; color: #991b1b; }
+    .dual-list-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 992px) {
+      .dual-list-container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <div id="sidebar-container"></div>
+
+    <div class="app-main">
+      <div id="header-container"></div>
+
+      <main class="page-body">
+
+        <!-- Hero Explanation Banner -->
+        <div class="card" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; margin-bottom: 24px; position: relative; overflow: hidden;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+            <div style="max-width: 680px; position: relative; z-index: 2;">
+              <span class="welcome-pill" style="background: rgba(99, 102, 241, 0.25); color: #c7d2fe;">Phase 3: Searching &amp; Sorting Algorithms</span>
+              <h1 style="font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px;">
+                Search &amp; Sort Lab
+              </h1>
+              <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.6;">
+                Interactive execution testbed implementing <strong>Linear Search (O(N))</strong>, <strong>Binary Search (O(log N))</strong>, <strong>Insertion Sort (O(N²))</strong>, and <strong>Quick Sort (O(N log N))</strong> directly on actual TaskFlow MySQL task records.
+              </p>
+            </div>
+            <div style="display: flex; gap: 14px; flex-wrap: wrap; position: relative; z-index: 2;">
+              <div style="background: rgba(255, 255, 255, 0.08); padding: 14px 20px; border-radius: var(--radius-md); text-align: center; border: 1px solid rgba(255,255,255,0.12);">
+                <div style="font-size: 0.72rem; text-transform: uppercase; color: #94a3b8; font-weight: 700;">Live Tasks</div>
+                <div id="stat-live-tasks" style="font-size: 1.5rem; font-weight: 800; color: #38bdf8;">--</div>
+              </div>
+              <div style="background: rgba(255, 255, 255, 0.08); padding: 14px 20px; border-radius: var(--radius-md); text-align: center; border: 1px solid rgba(255,255,255,0.12);">
+                <div style="font-size: 0.72rem; text-transform: uppercase; color: #94a3b8; font-weight: 700;">Algorithms</div>
+                <div style="font-size: 1.5rem; font-weight: 800; color: #a7f3d0;">4 Active</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- SECTION 1: SEARCHING OPERATIONS                              -->
+        <!-- ============================================================ -->
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="card-header" style="border-bottom: 1px solid var(--slate-200); padding-bottom: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <span class="badge" style="background: #e0f2fe; color: #0284c7; font-weight: 700; font-size: 0.75rem;">SECTION 1</span>
+                <h2 class="card-title" style="margin-top: 4px; font-size: 1.25rem;">Searching Operations</h2>
+                <p class="card-subtitle">Locate tasks using Sequential Linear Search or Divide-and-Conquer Binary Search</p>
+              </div>
+              <div id="search-algorithm-badge" class="badge" style="background: #f1f5f9; color: var(--navy-900); font-weight: 700;">
+                Linear Search Active
+              </div>
+            </div>
+          </div>
+
+          <!-- Algorithm Controls -->
+          <div class="algorithm-control-panel">
+            <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-end;">
+              <!-- Algorithm Selector -->
+              <div>
+                <label style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--slate-600); margin-bottom: 6px; text-transform: uppercase;">1. Select Algorithm</label>
+                <div class="toggle-group" id="search-algo-group">
+                  <button type="button" class="toggle-btn active" data-algo="linear">Linear Search</button>
+                  <button type="button" class="toggle-btn" data-algo="binary">Binary Search</button>
+                </div>
+              </div>
+
+              <!-- Search Key Selector -->
+              <div>
+                <label style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--slate-600); margin-bottom: 6px; text-transform: uppercase;">2. Search By</label>
+                <div class="toggle-group" id="search-key-group">
+                  <button type="button" class="toggle-btn active" data-key="id">Task ID</button>
+                  <button type="button" class="toggle-btn" data-key="name">Task Name</button>
+                </div>
+              </div>
+
+              <!-- Input and Submit -->
+              <div style="flex: 1; min-width: 240px;">
+                <label id="search-input-label" for="search-query-input" style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--slate-600); margin-bottom: 6px; text-transform: uppercase;">
+                  3. Enter Task ID
+                </label>
+                <div style="display: flex; gap: 8px;">
+                  <input type="text" id="search-query-input" class="form-input" placeholder="e.g. 101" style="flex: 1;" autocomplete="off">
+                  <button type="button" id="btn-execute-search" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px;">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <span>Search</span>
+                  </button>
+                  <button type="button" id="btn-reset-search" class="btn btn-secondary" title="Reset Search">
+                    Reset
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pre-condition banner for Binary Search -->
+            <div id="binary-search-precondition-alert" style="display: none; margin-top: 14px; padding: 10px 14px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 4px; font-size: 0.83rem; color: #1e40af;">
+              <strong>Binary Search Precondition Verified:</strong> Binary Search requires a sorted collection. The backend automatically sorts task records by the selected search key (Task ID or Task Name) using Insertion Sort prior to executing divide-and-conquer range halving. It is never applied to an unsorted list.
+            </div>
+          </div>
+
+          <!-- Search Results Area -->
+          <div id="search-results-container" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+              <div id="search-status-badge"></div>
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <div class="metric-pill">
+                  <span class="metric-pill-label">Comparisons</span>
+                  <span id="metric-search-comparisons" class="metric-pill-value">0</span>
+                </div>
+                <div class="metric-pill">
+                  <span class="metric-pill-label">Position Index</span>
+                  <span id="metric-search-position" class="metric-pill-value">-</span>
+                </div>
+                <div class="metric-pill">
+                  <span class="metric-pill-label">Algorithm</span>
+                  <span id="metric-search-algo" class="metric-pill-value" style="font-size: 0.95rem;">--</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Matched Task Details Card -->
+            <div id="matched-task-card" style="display: none; background: #ffffff; border: 1px solid var(--slate-200); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+              <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--slate-500); font-weight: 700; margin-bottom: 10px;">Matched Task Record</h4>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
+                <div>
+                  <span style="font-size: 0.72rem; color: var(--slate-500); text-transform: uppercase; font-weight: 600;">Task ID</span>
+                  <div id="res-task-id" style="font-weight: 800; font-family: var(--font-mono); color: var(--navy-900); font-size: 1rem;">--</div>
+                </div>
+                <div>
+                  <span style="font-size: 0.72rem; color: var(--slate-500); text-transform: uppercase; font-weight: 600;">Task Name</span>
+                  <div id="res-task-name" style="font-weight: 700; color: var(--navy-900);">--</div>
+                </div>
+                <div>
+                  <span style="font-size: 0.72rem; color: var(--slate-500); text-transform: uppercase; font-weight: 600;">Assigned Member</span>
+                  <div id="res-task-member" style="font-weight: 600; color: var(--slate-700);">--</div>
+                </div>
+                <div>
+                  <span style="font-size: 0.72rem; color: var(--slate-500); text-transform: uppercase; font-weight: 600;">Priority</span>
+                  <div id="res-task-priority">--</div>
+                </div>
+                <div>
+                  <span style="font-size: 0.72rem; color: var(--slate-500); text-transform: uppercase; font-weight: 600;">Status</span>
+                  <div id="res-task-status">--</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step-by-Step Decision Trace Console -->
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-size: 0.8rem; font-weight: 700; color: var(--navy-900); text-transform: uppercase;">
+                  Algorithm Step-by-Step Execution Trace
+                </span>
+                <span id="trace-step-count" style="font-size: 0.75rem; color: var(--slate-500);">0 steps</span>
+              </div>
+              <div id="search-trace-console" class="code-console">No search executed yet.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- SECTION 2: SORTING OPERATIONS                                -->
+        <!-- ============================================================ -->
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="card-header" style="border-bottom: 1px solid var(--slate-200); padding-bottom: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <span class="badge" style="background: #fef3c7; color: #b45309; font-weight: 700; font-size: 0.75rem;">SECTION 2</span>
+                <h2 class="card-title" style="margin-top: 4px; font-size: 1.25rem;">Sorting Operations</h2>
+                <p class="card-subtitle">Order task collections using Insertion Sort or Quick Sort without altering MySQL database records</p>
+              </div>
+              <div id="sort-algorithm-badge" class="badge" style="background: #f1f5f9; color: var(--navy-900); font-weight: 700;">
+                Insertion Sort Active
+              </div>
+            </div>
+          </div>
+
+          <!-- Sort Controls -->
+          <div class="algorithm-control-panel">
+            <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-end;">
+              <!-- Algorithm Selector -->
+              <div>
+                <label style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--slate-600); margin-bottom: 6px; text-transform: uppercase;">1. Select Sorting Algorithm</label>
+                <div class="toggle-group" id="sort-algo-group">
+                  <button type="button" class="toggle-btn active" data-algo="insertion">Insertion Sort (O(N²))</button>
+                  <button type="button" class="toggle-btn" data-algo="quick">Quick Sort (O(N log N))</button>
+                </div>
+              </div>
+
+              <!-- Sort Field Selector -->
+              <div>
+                <label style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--slate-600); margin-bottom: 6px; text-transform: uppercase;">2. Sort By Key</label>
+                <div class="toggle-group" id="sort-key-group">
+                  <button type="button" class="toggle-btn active" data-key="id">Task ID (Numeric)</button>
+                  <button type="button" class="toggle-btn" data-key="name">Task Name (Alphabetic)</button>
+                </div>
+              </div>
+
+              <!-- Execute Sort Button -->
+              <div>
+                <button type="button" id="btn-execute-sort" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px;">
+                  <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h18M3 8h12M3 12h8m-8 4h12m-6 4h6"/>
+                  </svg>
+                  <span>Execute Sorting</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Algorithm Explanation Box -->
+            <div id="sort-explanation-box" style="margin-top: 14px; padding: 12px 16px; background: #ffffff; border: 1px solid var(--slate-200); border-radius: 6px; font-size: 0.85rem; color: var(--slate-700); line-height: 1.5;">
+              <strong style="color: var(--navy-900);" id="sort-explanation-title">Insertion Sort Principle:</strong>
+              <span id="sort-explanation-text">Builds the sorted list element-by-element by taking each unsorted item and inserting it into its correct relative position among previously sorted items. Ideal for small or nearly sorted collections.</span>
+            </div>
+          </div>
+
+          <!-- Sorting Metrics Bar -->
+          <div id="sort-metrics-container" style="display: none; margin-bottom: 20px;">
+            <div style="display: flex; gap: 14px; flex-wrap: wrap;">
+              <div class="metric-pill">
+                <span class="metric-pill-label">Tasks Count</span>
+                <span id="metric-sort-total" class="metric-pill-value">--</span>
+              </div>
+              <div class="metric-pill">
+                <span class="metric-pill-label">Comparisons</span>
+                <span id="metric-sort-comparisons" class="metric-pill-value">0</span>
+              </div>
+              <div class="metric-pill">
+                <span class="metric-pill-label" id="metric-sort-shifts-label">Shifts / Swaps</span>
+                <span id="metric-sort-shifts" class="metric-pill-value">0</span>
+              </div>
+              <div class="metric-pill">
+                <span class="metric-pill-label">Time Taken</span>
+                <span id="metric-sort-time" class="metric-pill-value" style="font-size: 0.95rem;">0 ns</span>
+              </div>
+              <div class="metric-pill" style="flex: 1;">
+                <span class="metric-pill-label">Database Safety Status</span>
+                <span class="metric-pill-value" style="font-size: 0.9rem; color: #15803d; font-weight: 700;">
+                  Protected (In-Memory Cloned Array)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dual List Comparison: Original vs Sorted List -->
+          <div class="dual-list-container">
+            <!-- Original Task List -->
+            <div style="border: 1px solid var(--slate-200); border-radius: var(--radius-md); overflow: hidden;">
+              <div style="background: #f8fafc; padding: 10px 16px; border-bottom: 1px solid var(--slate-200); display: flex; justify-content: space-between; align-items: center;">
+                <strong style="font-size: 0.85rem; color: var(--navy-900); text-transform: uppercase;">Original Task List (Database Order)</strong>
+                <span id="original-count-badge" class="badge" style="background: var(--slate-200); color: var(--slate-700);">0 tasks</span>
+              </div>
+              <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+                <table class="data-table" style="margin-bottom: 0;">
+                  <thead>
+                    <tr>
+                      <th style="width: 50px;">#</th>
+                      <th style="width: 70px;">ID</th>
+                      <th>Task Name</th>
+                      <th>Member</th>
+                      <th>Priority</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbody-original-tasks">
+                    <tr><td colspan="5" style="text-align: center; color: var(--slate-500);">Loading tasks...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Sorted Task List -->
+            <div style="border: 1px solid var(--slate-200); border-radius: var(--radius-md); overflow: hidden;">
+              <div style="background: #eff6ff; padding: 10px 16px; border-bottom: 1px solid var(--slate-200); display: flex; justify-content: space-between; align-items: center;">
+                <strong style="font-size: 0.85rem; color: #1d4ed8; text-transform: uppercase;">Sorted Task List (Algorithm Output)</strong>
+                <span id="sorted-count-badge" class="badge" style="background: #dbeafe; color: #1e40af;">Ready to Sort</span>
+              </div>
+              <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+                <table class="data-table" style="margin-bottom: 0;">
+                  <thead>
+                    <tr>
+                      <th style="width: 50px;">Rank</th>
+                      <th style="width: 70px;">ID</th>
+                      <th>Task Name</th>
+                      <th>Member</th>
+                      <th>Priority</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbody-sorted-tasks">
+                    <tr><td colspan="5" style="text-align: center; color: var(--slate-500);">Click "Execute Sorting" to order records.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- SECTION 3: PERFORMANCE & COMPLEXITY COMPARISON               -->
+        <!-- ============================================================ -->
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="card-header" style="border-bottom: 1px solid var(--slate-200); padding-bottom: 14px;">
+            <div>
+              <span class="badge" style="background: #f1f5f9; color: var(--navy-900); font-weight: 700; font-size: 0.75rem;">THEORY &amp; BENCHMARKS</span>
+              <h2 class="card-title" style="margin-top: 4px; font-size: 1.25rem;">Conceptual Performance Comparison</h2>
+              <p class="card-subtitle">Asymptotic computational time complexities and suitability criteria for Phase 3 algorithms</p>
+            </div>
+          </div>
+
+          <div class="table-responsive" style="margin-bottom: 16px;">
+            <table class="data-table complexity-table">
+              <thead>
+                <tr>
+                  <th>Algorithm</th>
+                  <th>Category</th>
+                  <th>Best Case</th>
+                  <th>Average Case</th>
+                  <th>Worst Case</th>
+                  <th>Space Complexity</th>
+                  <th>Prerequisite &amp; Operational Characteristics</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Linear Search</strong></td>
+                  <td>Sequential Scan</td>
+                  <td><span class="complexity-badge complexity-green">O(1)</span></td>
+                  <td><span class="complexity-badge complexity-blue">O(n)</span></td>
+                  <td><span class="complexity-badge complexity-blue">O(n)</span></td>
+                  <td><span class="complexity-badge complexity-green">O(1)</span></td>
+                  <td>No pre-sorting needed. Evaluates elements one-by-one sequentially until match is found or end of list is reached.</td>
+                </tr>
+                <tr>
+                  <td><strong>Binary Search</strong></td>
+                  <td>Divide &amp; Conquer</td>
+                  <td><span class="complexity-badge complexity-green">O(1)</span></td>
+                  <td><span class="complexity-badge complexity-green">O(log n)</span></td>
+                  <td><span class="complexity-badge complexity-green">O(log n)</span></td>
+                  <td><span class="complexity-badge complexity-green">O(1)</span></td>
+                  <td><strong>Requires strictly sorted input.</strong> Repeatedly divides the search range in half by comparing query against median element.</td>
+                </tr>
+                <tr>
+                  <td><strong>Insertion Sort</strong></td>
+                  <td>Incremental Placement</td>
+                  <td><span class="complexity-badge complexity-blue">O(n)</span></td>
+                  <td><span class="complexity-badge complexity-red">O(n²)</span></td>
+                  <td><span class="complexity-badge complexity-red">O(n²)</span></td>
+                  <td><span class="complexity-badge complexity-green">O(1)</span></td>
+                  <td>In-place, stable sort. Highly efficient for small or nearly-sorted datasets; high shift overhead for large reverse-ordered arrays.</td>
+                </tr>
+                <tr>
+                  <td><strong>Quick Sort</strong></td>
+                  <td>Partition Divide &amp; Conquer</td>
+                  <td><span class="complexity-badge complexity-blue">O(n log n)</span></td>
+                  <td><span class="complexity-badge complexity-blue">O(n log n)</span></td>
+                  <td><span class="complexity-badge complexity-red">O(n²)</span></td>
+                  <td><span class="complexity-badge complexity-amber">O(log n)</span></td>
+                  <td>Selects pivot, partitions array into smaller and larger elements, and sorts recursively. Highly efficient general-purpose sorter.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Academic Disclaimer -->
+          <div style="background: #f8fafc; border: 1px solid var(--slate-200); border-radius: 6px; padding: 12px 16px; font-size: 0.83rem; color: var(--slate-600); line-height: 1.6;">
+            <strong style="color: var(--navy-900);">MCA Academic Note on Big-O Notation:</strong>
+            The time complexities displayed above are <em>conceptual asymptotic upper bounds</em> that measure how computational comparisons scale as the input size $n$ grows toward infinity ($O(1) < O(\log n) < O(n) < O(n \log n) < O(n^2)$). They do not represent fixed wall-clock execution times, which vary depending on CPU caching, memory allocation, and operating system load.
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="js/navbar.js?v=4.6"></script>
+  <script>
+    let rawTasks = [];
+    let currentSearchAlgo = 'linear';
+    let currentSearchKey = 'id';
+    let currentSortAlgo = 'insertion';
+    let currentSortKey = 'id';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const user = API.requireAuth();
+      if (!user) return;
+
+      renderAppLayout('search-sort', 'Search & Sort Lab', user);
+
+      // Load initial live tasks from MySQL via existing API
+      await loadInitialTasks();
+
+      // Setup event handlers
+      setupSearchControls();
+      setupSortControls();
+    });
+
+    async function loadInitialTasks() {
+      try {
+        rawTasks = await API.getTasks();
+        if (!Array.isArray(rawTasks)) rawTasks = [];
+        document.getElementById('stat-live-tasks').textContent = rawTasks.length;
+        document.getElementById('original-count-badge').textContent = `${rawTasks.length} tasks`;
+        renderOriginalTasksTable(rawTasks);
+      } catch (err) {
+        console.error('Failed to load initial tasks:', err);
+        API.showToast('Could not load task records from backend', 'error');
+      }
+    }
+
+    function renderOriginalTasksTable(tasks) {
+      const tbody = document.getElementById('tbody-original-tasks');
+      if (!tasks || tasks.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--slate-500);">No tasks found in database.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = tasks.map((t, idx) => `
+        <tr>
+          <td style="color: var(--slate-500); font-family: var(--font-mono); font-size: 0.75rem;">${idx + 1}</td>
+          <td><strong style="color: var(--navy-900); font-family: var(--font-mono);">#${t.id}</strong></td>
+          <td style="font-weight: 600;">${escapeHtml(t.name)}</td>
+          <td>${escapeHtml(t.member || 'Unassigned')}</td>
+          <td><span class="status-pill priority-${(t.priority || 'medium').toLowerCase()}">${escapeHtml(t.priority || 'Medium')}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    // ==========================================
+    // SECTION 1: SEARCHING LOGIC
+    // ==========================================
+    function setupSearchControls() {
+      // Algorithm toggle
+      const algoBtns = document.querySelectorAll('#search-algo-group .toggle-btn');
+      algoBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          algoBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentSearchAlgo = btn.getAttribute('data-algo');
+          updateSearchUI();
+        });
+      });
+
+      // Search key toggle
+      const keyBtns = document.querySelectorAll('#search-key-group .toggle-btn');
+      keyBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          keyBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentSearchKey = btn.getAttribute('data-key');
+          updateSearchUI();
+        });
+      });
+
+      // Search button
+      document.getElementById('btn-execute-search').addEventListener('click', handleExecuteSearch);
+
+      // Reset button
+      document.getElementById('btn-reset-search').addEventListener('click', () => {
+        document.getElementById('search-query-input').value = '';
+        document.getElementById('search-results-container').style.display = 'none';
+      });
+
+      // Enter key trigger
+      document.getElementById('search-query-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          handleExecuteSearch();
+        }
+      });
+    }
+
+    function updateSearchUI() {
+      const isBinary = currentSearchAlgo === 'binary';
+      const isName = currentSearchKey === 'name';
+
+      document.getElementById('search-algorithm-badge').textContent =
+        isBinary ? 'Binary Search Active (O(log N))' : 'Linear Search Active (O(N))';
+
+      document.getElementById('binary-search-precondition-alert').style.display =
+        isBinary ? 'block' : 'none';
+
+      const input = document.getElementById('search-query-input');
+      const label = document.getElementById('search-input-label');
+
+      if (isName) {
+        label.textContent = '3. Enter Task Name (or Substring)';
+        input.placeholder = 'e.g. Database Design';
+      } else {
+        label.textContent = '3. Enter Numeric Task ID';
+        input.placeholder = 'e.g. 101';
+      }
+    }
+
+    async function handleExecuteSearch() {
+      const input = document.getElementById('search-query-input');
+      const query = input.value.trim();
+
+      if (!query) {
+        API.showToast('Please enter a search query', 'error');
+        input.focus();
+        return;
+      }
+
+      if (currentSearchKey === 'id' && isNaN(query)) {
+        API.showToast('Task ID must be a numeric integer', 'error');
+        input.focus();
+        return;
+      }
+
+      const resultsContainer = document.getElementById('search-results-container');
+      resultsContainer.style.display = 'block';
+
+      try {
+        let res;
+        if (currentSearchAlgo === 'binary') {
+          res = await API.binarySearch(query, currentSearchKey);
+        } else {
+          res = await API.linearSearch(query, currentSearchKey);
+        }
+
+        renderSearchResults(res);
+      } catch (err) {
+        console.error('Search failed:', err);
+        API.showToast(err.message || 'Search operation failed', 'error');
+      }
+    }
+
+    function renderSearchResults(res) {
+      const statusBadge = document.getElementById('search-status-badge');
+      const matchedCard = document.getElementById('matched-task-card');
+
+      if (res.found && res.task) {
+        statusBadge.innerHTML = `
+          <span class="result-badge-found">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+            TASK FOUND
+          </span>
+          <span style="font-size: 0.85rem; color: var(--slate-600); margin-left: 8px;">${escapeHtml(res.message || '')}</span>
+        `;
+        matchedCard.style.display = 'block';
+        document.getElementById('res-task-id').textContent = `#${res.task.id}`;
+        document.getElementById('res-task-name').textContent = res.task.name || 'Untitled';
+        document.getElementById('res-task-member').textContent = res.task.member || 'Unassigned';
+        document.getElementById('res-task-priority').innerHTML =
+          `<span class="status-pill priority-${(res.task.priority || 'medium').toLowerCase()}">${escapeHtml(res.task.priority || 'Medium')}</span>`;
+        document.getElementById('res-task-status').innerHTML =
+          `<span class="status-pill ${(res.task.status || 'pending').toLowerCase().replace(' ', '-')}">${escapeHtml(res.task.status || 'Pending')}</span>`;
+      } else {
+        statusBadge.innerHTML = `
+          <span class="result-badge-notfound">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+            NOT FOUND
+          </span>
+          <span style="font-size: 0.85rem; color: var(--slate-600); margin-left: 8px;">${escapeHtml(res.message || 'No matching task record located in collection.')}</span>
+        `;
+        matchedCard.style.display = 'none';
+      }
+
+      document.getElementById('metric-search-comparisons').textContent = res.comparisons !== undefined ? res.comparisons : 0;
+      const pos = (res.sortedIndex !== undefined && res.sortedIndex !== -1) ? res.sortedIndex :
+                  ((res.index !== undefined && res.index !== -1) ? res.index : 'Not found');
+      document.getElementById('metric-search-position').textContent = typeof pos === 'number' ? `Index ${pos}` : pos;
+      document.getElementById('metric-search-algo').textContent = res.algorithm || currentSearchAlgo;
+
+      const traceList = res.trace || [];
+      document.getElementById('trace-step-count').textContent = `${traceList.length} step(s)`;
+      document.getElementById('search-trace-console').textContent = traceList.join('\n') || 'No trace generated.';
+    }
+
+    // ==========================================
+    // SECTION 2: SORTING LOGIC
+    // ==========================================
+    function setupSortControls() {
+      // Sort algo toggle
+      const algoBtns = document.querySelectorAll('#sort-algo-group .toggle-btn');
+      algoBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          algoBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentSortAlgo = btn.getAttribute('data-algo');
+          updateSortUI();
+        });
+      });
+
+      // Sort key toggle
+      const keyBtns = document.querySelectorAll('#sort-key-group .toggle-btn');
+      keyBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          keyBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentSortKey = btn.getAttribute('data-key');
+          updateSortUI();
+        });
+      });
+
+      // Execute sort button
+      document.getElementById('btn-execute-sort').addEventListener('click', handleExecuteSort);
+    }
+
+    function updateSortUI() {
+      const isQuick = currentSortAlgo === 'quick';
+      const isName = currentSortKey === 'name';
+
+      document.getElementById('sort-algorithm-badge').textContent =
+        isQuick ? 'Quick Sort Active (O(N log N))' : 'Insertion Sort Active (O(N²))';
+
+      document.getElementById('metric-sort-shifts-label').textContent =
+        isQuick ? 'Swaps' : 'Shifts';
+
+      const title = document.getElementById('sort-explanation-title');
+      const text = document.getElementById('sort-explanation-text');
+
+      if (isQuick) {
+        title.textContent = 'Quick Sort Principle:';
+        text.textContent = `Selects a pivot element and partitions the array into two sub-arrays: elements smaller than the pivot and elements greater than the pivot, then recursively sorts each partition. Extremely fast general-purpose divide-and-conquer algorithm.`;
+      } else {
+        title.textContent = 'Insertion Sort Principle:';
+        text.textContent = `Builds the sorted collection one element at a time by sliding each unsorted element into its proper position among already-sorted elements (analogous to sorting playing cards in hand). Ideal for small lists.`;
+      }
+    }
+
+    async function handleExecuteSort() {
+      const btn = document.getElementById('btn-execute-sort');
+      btn.disabled = true;
+      btn.innerHTML = `<span>Sorting...</span>`;
+
+      try {
+        let res;
+        if (currentSortAlgo === 'quick') {
+          res = await API.quickSort(currentSortKey);
+        } else {
+          res = await API.insertionSort(currentSortKey);
+        }
+
+        renderSortResults(res);
+        API.showToast(`Sorted by ${currentSortKey.toUpperCase()} using ${currentSortAlgo === 'quick' ? 'Quick Sort' : 'Insertion Sort'}!`, 'success');
+      } catch (err) {
+        console.error('Sorting failed:', err);
+        API.showToast(err.message || 'Sorting operation failed', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h18M3 8h12M3 12h8m-8 4h12m-6 4h6"/>
+          </svg>
+          <span>Execute Sorting</span>
+        `;
+      }
+    }
+
+    function renderSortResults(res) {
+      document.getElementById('sort-metrics-container').style.display = 'block';
+
+      document.getElementById('metric-sort-total').textContent = res.totalTasks !== undefined ? res.totalTasks : (res.sortedTasks ? res.sortedTasks.length : 0);
+      document.getElementById('metric-sort-comparisons').textContent = res.comparisons !== undefined ? res.comparisons : 0;
+      document.getElementById('metric-sort-shifts').textContent = (res.swaps !== undefined ? res.swaps : (res.shifts !== undefined ? res.shifts : 0));
+
+      const timeNanos = res.timeTakenNanos || 0;
+      const timeStr = timeNanos > 1000000 ? `${(timeNanos / 1000000).toFixed(3)} ms` : `${(timeNanos / 1000).toFixed(1)} µs (${timeNanos} ns)`;
+      document.getElementById('metric-sort-time').textContent = timeStr;
+
+      document.getElementById('sorted-count-badge').textContent = `${(res.sortedTasks || []).length} tasks sorted`;
+
+      const tbody = document.getElementById('tbody-sorted-tasks');
+      const sorted = res.sortedTasks || [];
+
+      if (sorted.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--slate-500);">No tasks to sort.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = sorted.map((t, idx) => `
+        <tr style="${idx % 2 === 0 ? 'background: #f8fafc;' : ''}">
+          <td style="color: var(--primary); font-weight: 700; font-family: var(--font-mono); font-size: 0.8rem;">#${idx + 1}</td>
+          <td><strong style="color: var(--navy-900); font-family: var(--font-mono); ${currentSortKey === 'id' ? 'background: #fef08a; padding: 2px 4px; border-radius: 4px;' : ''}">#${t.id}</strong></td>
+          <td style="font-weight: 600; ${currentSortKey === 'name' ? 'background: #fef08a; padding: 2px 4px; border-radius: 4px;' : ''}">${escapeHtml(t.name)}</td>
+          <td>${escapeHtml(t.member || 'Unassigned')}</td>
+          <td><span class="status-pill priority-${(t.priority || 'medium').toLowerCase()}">${escapeHtml(t.priority || 'Medium')}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>

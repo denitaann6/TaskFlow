@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — TaskFlow</title>
+  <meta name="description" content="Role-specific project management dashboard for administrators and team members.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <style>
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .spin-animation {
+      animation: spin 0.8s linear infinite;
+      transform-origin: center center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <div id="sidebar-container"></div>
+
+    <!-- Main Content Area -->
+    <div class="app-main">
+      <!-- Header -->
+      <div id="header-container"></div>
+
+      <!-- Page Body -->
+      <main class="page-body">
+
+        <!-- Welcome Banner with Illustration -->
+        <section class="welcome-banner">
+          <div class="welcome-content">
+            <span class="welcome-pill">
+              <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+              </svg>
+              <span id="current-date-badge">Enterprise Workspace</span>
+            </span>
+            <h1 class="welcome-title" id="welcome-greeting">Welcome to TaskFlow</h1>
+            <p class="welcome-desc" id="welcome-subtext">
+              Real-time project tracking with MySQL persistence, team workload distribution, and milestone tracking.
+            </p>
+            <div style="margin-top: 18px; display: flex; gap: 12px; flex-wrap: wrap;" id="banner-quick-actions">
+              <!-- Dynamically populated based on role -->
+            </div>
+          </div>
+          <img src="assets/banner-dashboard.svg" alt="Analytics and Productivity" class="welcome-illustration">
+        </section>
+
+        <!-- KPI Metrics Grid -->
+        <section class="stats-grid">
+          <div class="stat-card">
+            <div>
+              <div class="stat-label">Total Tasks</div>
+              <div class="stat-value" id="stat-total">-</div>
+              <div class="stat-subtext" id="stat-total-sub">Authorized records</div>
+            </div>
+            <div class="stat-icon-wrapper blue">
+              <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+              </svg>
+            </div>
+          </div>
+
+          <a href="pending-queue.html" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;" title="Open Pending Queue (FIFO)">
+            <div>
+              <div class="stat-label">Pending (FIFO Queue) ↗</div>
+              <div class="stat-value" id="stat-pending">-</div>
+              <div class="stat-subtext">Awaiting execution</div>
+            </div>
+            <div class="stat-icon-wrapper amber">
+              <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+          </a>
+
+          <div class="stat-card">
+            <div>
+              <div class="stat-label">In Progress</div>
+              <div class="stat-value" id="stat-progress">-</div>
+              <div class="stat-subtext">Actively being worked on</div>
+            </div>
+            <div class="stat-icon-wrapper purple">
+              <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+              </svg>
+            </div>
+          </div>
+
+          <a href="completed-tasks.html" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;" title="Open Completed Tasks (LIFO Stack)">
+            <div>
+              <div class="stat-label">Completed (LIFO Stack) ↗</div>
+              <div class="stat-value" id="stat-completed">-</div>
+              <div class="stat-subtext" id="stat-rate-sub">0% completion rate</div>
+            </div>
+            <div class="stat-icon-wrapper emerald">
+              <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+          </a>
+        </section>
+
+        <!-- Dynamic Role Section -->
+        <div id="role-specific-container">
+          <!-- Populated by JavaScript -->
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/navbar.js"></script>
+  <script>
+    let currentAdminRefreshInProgress = false;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      let user = API.requireAuth();
+      if (!user) return;
+
+      // Sync and validate session with backend to prevent stale role state
+      try {
+        const freshUser = await API.syncCurrentUser();
+        if (freshUser) {
+          user = freshUser;
+        }
+      } catch (e) {
+        console.warn('Could not sync user with backend:', e);
+      }
+
+      const isAdmin = user.role && user.role.toUpperCase() === 'ADMIN';
+      renderAppLayout('dashboard', isAdmin ? 'Administrator Control Center' : 'Member Workspace & Analytics');
+
+      // Date banner
+      const now = new Date();
+      const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
+      document.getElementById('current-date-badge').textContent = now.toLocaleDateString('en-US', options);
+
+      // Welcome text
+      if (isAdmin) {
+        document.getElementById('welcome-greeting').textContent = `Administrator Control Center`;
+        document.getElementById('welcome-subtext').textContent =
+          `You have full administrative jurisdiction over all organization tasks, team allocations, and system reporting.`;
+        document.getElementById('banner-quick-actions').innerHTML = `
+          <a href="tasks.html" class="btn btn-primary btn-sm">Tasks Workspace</a>
+          <a href="pending-queue.html" class="btn btn-secondary btn-sm" style="color: #0f172a;">Pending Queue (FIFO)</a>
+          <a href="completed-tasks.html" class="btn btn-secondary btn-sm" style="color: #0f172a;">Completed Tasks (LIFO)</a>
+          <button id="btn-refresh-admin-dashboard" class="btn btn-secondary btn-sm" style="color: #0f172a; display: inline-flex; align-items: center; gap: 6px;" title="Reload latest metrics from MySQL database">
+            <svg id="refresh-icon-banner" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            <span id="refresh-text-banner">Refresh Dashboard</span>
+          </button>
+        `;
+        document.getElementById('btn-refresh-admin-dashboard').addEventListener('click', handleAdminRefresh);
+      } else {
+        document.getElementById('welcome-greeting').textContent = `Welcome back, ${user.displayName || user.username}!`;
+        document.getElementById('welcome-subtext').textContent =
+          `Here is your personalized workspace. You can review your assigned tasks and update your status in real time.`;
+        document.getElementById('banner-quick-actions').innerHTML = `
+          <a href="tasks.html" class="btn btn-primary btn-sm">View My Tasks</a>
+          <a href="pending-queue.html" class="btn btn-secondary btn-sm" style="color: #0f172a;">Pending Queue</a>
+          <a href="completed-tasks.html" class="btn btn-secondary btn-sm" style="color: #0f172a;">Completed Tasks</a>
+        `;
+      }
+
+      await loadDashboardData(isAdmin);
+    });
+
+    async function handleAdminRefresh() {
+      if (currentAdminRefreshInProgress) return;
+      currentAdminRefreshInProgress = true;
+
+      const bannerBtn = document.getElementById('btn-refresh-admin-dashboard');
+      const cardBtn = document.getElementById('btn-refresh-admin-tasks');
+      const bannerText = document.getElementById('refresh-text-banner');
+      const cardText = document.getElementById('refresh-text-card');
+      const bannerIcon = document.getElementById('refresh-icon-banner');
+      const cardIcon = document.getElementById('refresh-icon-card');
+
+      if (bannerBtn) bannerBtn.disabled = true;
+      if (cardBtn) cardBtn.disabled = true;
+      if (bannerText) bannerText.textContent = 'Refreshing...';
+      if (cardText) cardText.textContent = 'Refreshing...';
+      if (bannerIcon) bannerIcon.classList.add('spin-animation');
+      if (cardIcon) cardIcon.classList.add('spin-animation');
+
+      try {
+        await loadDashboardData(true);
+        API.showToast('Admin Dashboard reloaded with latest database records', 'success');
+      } catch (err) {
+        console.error('Failed to refresh dashboard:', err);
+        API.showToast('Refresh failed: ' + (err.message || 'Cannot reach server'), 'error');
+      } finally {
+        if (bannerText) bannerText.textContent = 'Refresh Dashboard';
+        if (cardText) cardText.textContent = 'Refresh';
+        if (bannerIcon) bannerIcon.classList.remove('spin-animation');
+        if (cardIcon) cardIcon.classList.remove('spin-animation');
+        if (bannerBtn) bannerBtn.disabled = false;
+        if (cardBtn) cardBtn.disabled = false;
+        currentAdminRefreshInProgress = false;
+      }
+    }
+
+    async function loadDashboardData(isAdmin) {
+      try {
+        const stats = await API.getStatsSummary();
+        const tasks = await API.getTasks();
+
+        // Update KPI Cards
+        document.getElementById('stat-total').textContent = stats.totalTasks || 0;
+        document.getElementById('stat-pending').textContent = stats.pendingCount || 0;
+        document.getElementById('stat-progress').textContent = stats.inProgressCount || 0;
+        document.getElementById('stat-completed').textContent = stats.completedCount || 0;
+        document.getElementById('stat-rate-sub').textContent = `${stats.completionRate || 0}% completion rate`;
+
+        if (!isAdmin) {
+          document.getElementById('stat-total-sub').textContent = 'Assigned to your account';
+        }
+
+        const roleContainer = document.getElementById('role-specific-container');
+
+        if (isAdmin) {
+          // Render Admin Workload Distribution & Full System Recent Tasks
+          let workloadRows = '';
+          if (stats.memberWorkload) {
+            for (const [member, data] of Object.entries(stats.memberWorkload)) {
+              const compPercent = data.total > 0 ? Math.round((data.completed / data.total) * 100) : 0;
+              workloadRows += `
+                <tr>
+                  <td><strong style="color: var(--navy-900);">${escapeHtml(member)}</strong></td>
+                  <td>${data.total}</td>
+                  <td><span class="status-pill pending">${data.pending}</span></td>
+                  <td><span class="status-pill in-progress">${data.inProgress}</span></td>
+                  <td><span class="status-pill completed">${data.completed}</span></td>
+                  <td>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <div style="flex: 1; height: 6px; background: var(--slate-200); border-radius: 3px; overflow: hidden; min-width: 60px;">
+                        <div style="width: ${compPercent}%; height: 100%; background: var(--primary);"></div>
+                      </div>
+                      <span style="font-size: 0.75rem; font-weight: 600; color: var(--slate-600);">${compPercent}%</span>
+                    </div>
+                  </td>
+                </tr>
+              `;
+            }
+          }
+
+          roleContainer.innerHTML = `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+              <!-- Team Workload Distribution -->
+              <div class="card" style="margin-bottom: 0;">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Team Workload Distribution</h3>
+                    <p class="card-subtitle">Real-time task volume and completion rate across team members</p>
+                  </div>
+                </div>
+                <div class="table-responsive">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Member</th>
+                        <th>Total</th>
+                        <th>Pending</th>
+                        <th>Active</th>
+                        <th>Done</th>
+                        <th>Progress</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${workloadRows || '<tr><td colspan="6" style="text-align:center;">No workload data</td></tr>'}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Organization Progress Overview Card -->
+              <div class="card" style="margin-bottom: 0;">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">System Status Breakdown</h3>
+                    <p class="card-subtitle">Global delivery health and throughput</p>
+                  </div>
+                </div>
+                <div style="padding: 10px 0;">
+                  <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">
+                    <span>Overall Project Completion</span>
+                    <span style="color: var(--primary);">${stats.completionRate || 0}%</span>
+                  </div>
+                  <div style="height: 12px; background: var(--slate-200); border-radius: 6px; overflow: hidden; margin-bottom: 24px;">
+                    <div style="width: ${stats.completionRate || 0}%; height: 100%; background: linear-gradient(90deg, #2563eb, #059669);"></div>
+                  </div>
+
+                  <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--slate-50); border-radius: 8px; border: 1px solid var(--slate-200);">
+                      <span style="font-size: 0.85rem; color: var(--slate-600);">Database Table</span>
+                      <strong style="color: var(--navy-900); font-family: var(--font-mono);">taskflow_db.tasks (MySQL 8)</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--slate-50); border-radius: 8px; border: 1px solid var(--slate-200);">
+                      <span style="font-size: 0.85rem; color: var(--slate-600);">Backend Port</span>
+                      <strong style="color: var(--navy-900); font-family: var(--font-mono);">8085 (Active)</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--slate-50); border-radius: 8px; border: 1px solid var(--slate-200);">
+                      <span style="font-size: 0.85rem; color: var(--slate-600);">External System Guard</span>
+                      <strong style="color: #059669;">VoltGo (Port 8080) Untouched</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Tasks Table -->
+            <div class="card" style="margin-top: 24px;">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Recent Tasks Registry</h3>
+                  <p class="card-subtitle">All active tasks managed in database</p>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <button id="btn-refresh-admin-tasks" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;" title="Reload live from MySQL database">
+                    <svg id="refresh-icon-card" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    <span id="refresh-text-card">Refresh</span>
+                  </button>
+                  <a href="tasks.html" class="btn btn-secondary btn-sm">Open Workspace</a>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Task ID</th>
+                      <th>Task Name</th>
+                      <th>Assigned Member</th>
+                      <th>Priority</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${renderTaskRows(tasks.slice(0, 6))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `;
+
+          const cardRefreshBtn = document.getElementById('btn-refresh-admin-tasks');
+          if (cardRefreshBtn) {
+            cardRefreshBtn.addEventListener('click', handleAdminRefresh);
+          }
+        } else {
+          // Member Personalized Dashboard
+          roleContainer.innerHTML = `
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">My Assigned Tasks</h3>
+                  <p class="card-subtitle">Tasks assigned to your account. Update your status directly below.</p>
+                </div>
+                <a href="tasks.html" class="btn btn-primary btn-sm">Full Task Workspace</a>
+              </div>
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Task ID</th>
+                      <th>Task Name</th>
+                      <th>Priority</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${renderMemberTaskRows(tasks)}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `;
+
+          // Attach status dropdown change event listeners
+          document.querySelectorAll('.select-member-status').forEach(sel => {
+            sel.addEventListener('change', async (e) => {
+              const taskId = e.target.getAttribute('data-id');
+              const newStatus = e.target.value;
+              try {
+                e.target.disabled = true;
+                await API.updateTaskStatus(taskId, newStatus);
+                API.showToast(`Task #${taskId} status updated to ${newStatus}`, 'success');
+                await loadDashboardData(false);
+              } catch (err) {
+                API.showToast(err.message || 'Failed to update task status', 'error');
+                await loadDashboardData(false);
+              }
+            });
+          });
+
+          // Attach quick complete button event listeners
+          document.querySelectorAll('.btn-quick-complete').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+              const taskId = e.currentTarget.getAttribute('data-id');
+              try {
+                e.currentTarget.disabled = true;
+                await API.completeTask(taskId);
+                API.showToast(`Task #${taskId} marked completed!`, 'success');
+                await loadDashboardData(false);
+              } catch (err) {
+                API.showToast(err.message || 'Failed to complete task', 'error');
+                await loadDashboardData(false);
+              }
+            });
+          });
+        }
+
+      } catch (err) {
+        console.error('Failed to load dashboard:', err);
+        API.showToast('Could not load dashboard statistics: ' + err.message, 'error');
+      }
+    }
+
+    function renderTaskRows(tasks) {
+      if (!tasks || tasks.length === 0) {
+        return `<tr><td colspan="5" style="text-align:center; padding: 24px;"><img src="assets/empty-state.svg" style="width:120px;"><br>No tasks recorded.</td></tr>`;
+      }
+      return tasks.map(t => `
+        <tr>
+          <td><strong style="color: var(--navy-900);">#${t.id}</strong></td>
+          <td>${escapeHtml(t.name)}</td>
+          <td><span style="font-weight: 500;">${escapeHtml(t.member)}</span></td>
+          <td><span class="priority-pill ${getPriorityClass(t.priority)}">${escapeHtml(t.priority)}</span></td>
+          <td><span class="status-pill ${getStatusClass(t.status)}">${escapeHtml(t.status)}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderMemberTaskRows(tasks) {
+      if (!tasks || tasks.length === 0) {
+        return `<tr><td colspan="5" style="text-align:center; padding: 32px;"><img src="assets/empty-state.svg" style="width:140px;"><br><p style="color:var(--slate-500);margin-top:8px;">No tasks assigned to your account right now.</p></td></tr>`;
+      }
+      return tasks.map(t => {
+        const isCompleted = (t.status || '').toLowerCase() === 'completed';
+        const isInProgress = (t.status || '').toLowerCase().includes('prog');
+        const isPending = !isCompleted && !isInProgress;
+
+        return `
+          <tr>
+            <td><strong style="color: var(--navy-900);">#${t.id}</strong></td>
+            <td><strong>${escapeHtml(t.name)}</strong></td>
+            <td><span class="priority-pill ${getPriorityClass(t.priority)}">${escapeHtml(t.priority)}</span></td>
+            <td>
+              <select class="form-select btn-sm select-member-status" data-id="${t.id}" style="padding: 4px 8px; font-size: 0.8rem; font-weight: 600; width: auto; min-width: 125px;">
+                <option value="Pending" ${isPending ? 'selected' : ''}>Pending</option>
+                <option value="In Progress" ${isInProgress ? 'selected' : ''}>In Progress</option>
+                <option value="Completed" ${isCompleted ? 'selected' : ''}>Completed</option>
+              </select>
+            </td>
+            <td>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                ${!isCompleted ? `
+                  <button class="btn btn-success btn-sm btn-quick-complete" data-id="${t.id}" title="Mark completed">Done</button>
+                ` : `
+                  <span style="font-size: 0.78rem; color: #059669; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    Done
+                  </span>
+                `}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function getPriorityClass(p) {
+      if (!p) return 'medium';
+      const pl = p.toLowerCase();
+      if (pl.startsWith('h')) return 'high';
+      if (pl.startsWith('l')) return 'low';
+      return 'medium';
+    }
+
+    function getStatusClass(s) {
+      if (!s) return 'pending';
+      const sl = s.toLowerCase();
+      if (sl.includes('comp')) return 'completed';
+      if (sl.includes('prog')) return 'in-progress';
+      return 'pending';
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+  </script>
+</body>
+</html>

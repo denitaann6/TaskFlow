@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pending Queue (FIFO) — TaskFlow</title>
+  <meta name="description" content="FIFO Execution Queue for Pending Tasks backed by custom Node pointers.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <style>
+    .queue-node-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      background: #ffffff;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-md);
+      margin-bottom: 12px;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .queue-node-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08);
+      transform: translateY(-1px);
+    }
+    .queue-node-card.front-node {
+      border-left: 5px solid #f59e0b;
+      background: linear-gradient(90deg, #fffbeb 0%, #ffffff 100%);
+    }
+    .position-pill {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .position-pill.front {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+    .position-pill.normal {
+      background: #f1f5f9;
+      color: var(--slate-600);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <div id="sidebar-container"></div>
+
+    <div class="app-main">
+      <div id="header-container"></div>
+
+      <main class="page-body">
+
+        <!-- Queue Hero Card -->
+        <div class="card" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; margin-bottom: 24px; position: relative; overflow: hidden;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+            <div style="max-width: 680px; position: relative; z-index: 2;">
+              <span class="welcome-pill" style="background: rgba(245, 158, 11, 0.25); color: #fde68a;">Data Structure: FIFO Queue (Linked List)</span>
+              <h1 style="font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px;">
+                Pending Tasks Execution Queue
+              </h1>
+              <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.6; margin-bottom: 0;">
+                Pending deliverables awaiting execution are held in a <strong>First-In First-Out (FIFO) Queue</strong> backed by explicit Java Node references (<code>front</code> and <code>rear</code>). The earliest queued task at the front is processed first, transitioning to <em>In Progress</em> in MySQL without losing its database record.
+              </p>
+            </div>
+            <img src="assets/banner-dashboard.svg" alt="FIFO Queue" style="width: 170px; height: auto; position: relative; z-index: 2; opacity: 0.9;">
+          </div>
+        </div>
+
+        <!-- Operations Control Bar -->
+        <div class="card" style="margin-bottom: 24px; padding: 18px 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <button id="btn-peek-front" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                Peek Front Task (O(1))
+              </button>
+              <button id="btn-process-next" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                </svg>
+                Process Next Pending Task (Dequeue)
+              </button>
+              <button id="btn-sync-queue" class="btn btn-secondary btn-sm" title="Reconcile queue with MySQL pending tasks">
+                Sync Queue from DB
+              </button>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--slate-500);">
+              Queue Depth: <strong id="queue-count-badge" style="color: var(--navy-900); font-size: 1rem;">0</strong> Pending Tasks
+            </div>
+          </div>
+
+          <!-- Live Peek Callout Banner (Populated on Peek) -->
+          <div id="peek-callout" style="display: none; margin-top: 16px; padding: 12px 18px; border-radius: var(--radius-md); background: #fef3c7; border: 1px solid #fde68a; color: #92400e;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong>[FRONT OF QUEUE / NEXT TO PROCESS]:</strong>
+                <span id="peek-task-desc" style="margin-left: 6px;">None</span>
+              </div>
+              <button id="btn-close-peek" style="background: none; border: none; font-size: 1.1rem; color: #92400e; cursor: pointer;">&times;</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pointer Chain Diagram Card -->
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="card-header" style="margin-bottom: 10px;">
+            <div>
+              <h3 class="card-title" style="font-size: 1rem;">FIFO Pointer Sequence</h3>
+              <p class="card-subtitle">Pointer transitions from Front (head) to Rear (tail)</p>
+            </div>
+            <span class="complexity-tag">O(1) Enqueue &bull; O(1) Dequeue &bull; O(1) Peek</span>
+          </div>
+          <div id="queue-visual-box" style="font-family: monospace; font-size: 0.82rem; background: #0f172a; color: #f59e0b; padding: 14px 18px; border-radius: var(--radius-md); overflow-x: auto; white-space: pre-wrap; line-height: 1.6;">
+            [FRONT] (Queue is Empty) [REAR]
+          </div>
+        </div>
+
+        <!-- Queue Items List -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Pending Queue Items (Ordered by Arrival)</h3>
+              <p class="card-subtitle">Earliest submitted pending tasks are guaranteed first processing</p>
+            </div>
+          </div>
+
+          <div id="queue-items-container" style="padding-top: 8px;">
+            <!-- Populated dynamically -->
+            <div style="text-align: center; padding: 40px; color: var(--slate-400);">Loading queue items...</div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/navbar.js"></script>
+  <script>
+    let queueTasks = [];
+    let currentUser = null;
+    let isAdmin = false;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      let user = API.requireAuth();
+      if (!user) return;
+
+      try {
+        const fresh = await API.syncCurrentUser();
+        if (fresh) user = fresh;
+      } catch (e) {
+        console.warn('Session sync error:', e);
+      }
+
+      currentUser = user;
+      isAdmin = currentUser.role && currentUser.role.toUpperCase() === 'ADMIN';
+
+      renderAppLayout('pending-queue', 'Pending Tasks Execution Queue');
+
+      if (!isAdmin) {
+        const procBtn = document.getElementById('btn-process-next');
+        if (procBtn) {
+          procBtn.title = 'Only administrators can dequeue and process organization deliverables';
+          procBtn.style.opacity = '0.6';
+        }
+      }
+
+      await loadQueue();
+
+      // Peek Front
+      document.getElementById('btn-peek-front').addEventListener('click', async () => {
+        try {
+          const res = await API.peekQueue();
+          const callout = document.getElementById('peek-callout');
+          const desc = document.getElementById('peek-task-desc');
+          callout.style.display = 'block';
+
+          if (res.empty) {
+            desc.textContent = 'Queue is empty. No tasks currently pending execution.';
+          } else {
+            const t = res.task;
+            desc.innerHTML = `<strong>Task #${t.id}:</strong> "${escapeHtml(t.name)}" (Assignee: <strong>${escapeHtml(t.member)}</strong>, Priority: <strong>${escapeHtml(t.priority)}</strong>)`;
+          }
+          API.showToast(res.message, 'info');
+        } catch (err) {
+          API.showToast(err.message, 'error');
+        }
+      });
+
+      document.getElementById('btn-close-peek').addEventListener('click', () => {
+        document.getElementById('peek-callout').style.display = 'none';
+      });
+
+      // Process Next (Dequeue) with Double-Click & Debounce Lockout
+      let isProcessInProgress = false;
+      document.getElementById('btn-process-next').addEventListener('click', async () => {
+        if (!isAdmin) {
+          API.showToast('Access restricted: Only Administrators can dequeue and assign tasks to In Progress.', 'warning');
+          return;
+        }
+
+        if (isProcessInProgress) return;
+        isProcessInProgress = true;
+        const processBtn = document.getElementById('btn-process-next');
+        processBtn.disabled = true;
+        const originalHtml = processBtn.innerHTML;
+        processBtn.innerHTML = `
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation: spin 0.8s linear infinite;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          Processing...
+        `;
+
+        try {
+          const task = await API.processNextQueue();
+          API.showToast(`Dequeued Task #${task.id} ("${task.name}") ➔ Moved to In Progress in MySQL!`, 'success');
+          document.getElementById('peek-callout').style.display = 'none';
+          await loadQueue();
+        } catch (err) {
+          API.showToast(err.message || 'Queue is empty or process failed.', 'error');
+        } finally {
+          processBtn.innerHTML = originalHtml;
+          processBtn.disabled = false;
+          isProcessInProgress = false;
+        }
+      });
+
+      // Sync Queue
+      document.getElementById('btn-sync-queue').addEventListener('click', async () => {
+        try {
+          await API.syncQueue();
+          await loadQueue();
+          API.showToast('Queue synchronized with MySQL database', 'success');
+        } catch (err) {
+          API.showToast(err.message, 'error');
+        }
+      });
+    });
+
+    async function loadQueue() {
+      try {
+        queueTasks = await API.getQueue();
+        const peekRes = await API.peekQueue();
+
+        document.getElementById('queue-count-badge').textContent = queueTasks.length;
+        document.getElementById('queue-visual-box').textContent = peekRes.visual || '[FRONT] (Queue is Empty) [REAR]';
+
+        renderQueueList(queueTasks);
+      } catch (err) {
+        console.error('Failed to load queue:', err);
+        document.getElementById('queue-items-container').innerHTML = `
+          <div style="padding: 24px; text-align: center; color: #ef4444;">
+            Failed to query queue: ${escapeHtml(err.message)}
+          </div>
+        `;
+      }
+    }
+
+    function renderQueueList(tasks) {
+      const container = document.getElementById('queue-items-container');
+      if (!tasks || tasks.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 48px 24px;">
+            <div style="width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 50%; background: #fef3c7; display: flex; align-items: center; justify-content: center; color: #d97706;">
+              <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>
+            </div>
+            <h4 style="font-size: 1.1rem; font-weight: 700; color: var(--navy-900); margin-bottom: 6px;">Pending Queue is Empty</h4>
+            <p style="font-size: 0.85rem; color: var(--slate-500); max-width: 440px; margin: 0 auto;">
+              All tasks in TaskFlow are currently either actively <em>In Progress</em> or marked <em>Completed</em>. When an administrator creates a Pending task or a task is reopened, it will enter this queue at the rear.
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = tasks.map((task, idx) => {
+        const isFront = (idx === 0);
+        const positionLabel = isFront ? '#1 [FRONT / NEXT]' : `#${idx + 1}`;
+        const canMemberUpdate = !isAdmin && task.member &&
+          (task.member.toLowerCase() === (currentUser.username || '').toLowerCase() ||
+           task.member.toLowerCase() === (currentUser.displayName || '').toLowerCase() ||
+           task.member.toLowerCase() === (currentUser.assignedMemberName || '').toLowerCase());
+
+        return `
+          <div class="queue-node-card ${isFront ? 'front-node' : ''}">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <span class="position-pill ${isFront ? 'front' : 'normal'}">${positionLabel}</span>
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <strong style="color: var(--navy-900); font-size: 0.95rem;">Task #${task.id}: ${escapeHtml(task.name)}</strong>
+                  <span class="priority-badge ${getPriorityClass(task.priority)}">${task.priority}</span>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--slate-500); margin-top: 4px;">
+                  Assignee: <strong style="color: var(--slate-700);">${escapeHtml(task.member)}</strong> &bull;
+                  Status in MySQL: <span class="status-badge pending">Pending</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 10px;">
+              ${canMemberUpdate ? `
+                <button class="btn btn-secondary btn-sm btn-member-start" data-id="${task.id}" style="color: #4f46e5; border-color: #c7d2fe;">
+                  Start Working ➔
+                </button>
+              ` : ''}
+              ${(isAdmin && isFront) ? `
+                <span style="font-size: 0.78rem; font-weight: 600; color: #b45309;">
+                  Ready to Dequeue
+                </span>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Member Start Working buttons
+      container.querySelectorAll('.btn-member-start').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          try {
+            await API.updateTaskStatus(id, 'In Progress');
+            API.showToast(`Task #${id} moved to In Progress and removed from Pending Queue!`, 'success');
+            await loadQueue();
+          } catch (err) {
+            API.showToast(err.message, 'error');
+          }
+        });
+      });
+    }
+
+    function getPriorityClass(p) {
+      if (!p) return 'medium';
+      const pl = p.toLowerCase();
+      if (pl.startsWith('h')) return 'high';
+      if (pl.startsWith('l')) return 'low';
+      return 'medium';
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+  </script>
+</body>
+</html>
